@@ -226,7 +226,16 @@
 <body>
     <div id="root"></div>
 
-    <script type="text/babel">
+<script type="module">
+    import { 
+        ID_PROYECTO, 
+        CATEGORIAS_DISPONIBLES, 
+        ORDEN_CATS, 
+        NOMBRES_CATS, 
+        MAX_POR_CATEGORIA 
+    } from './js/constants.js';
+    import { calcularTablaZona } from './js/logic.js';
+    import { renderPlantelSlots } from './js/plantel.js';
         const { useState, useEffect, useRef } = React;
 
         // Configuración de Firebase - Hub Universitario
@@ -527,63 +536,21 @@
 {paso === 3 && (
     <div>
         <h2 style={{color:'#203a43', marginBottom:'6px', fontSize:'20px'}}>Paso 3 — Plantel Inicial</h2>
-        <p style={{color:'#64748b', fontSize:'14px', marginBottom:'20px'}}>
-            Hacé clic en los espacios disponibles para asignar a tus jugadores. 
-        </p>
-
-        <div style={{maxHeight:'400px', overflowY:'auto', paddingRight:'10px', display:'flex', flexDirection:'column', gap:'15px'}}>
-            {CATEGORIAS_DISPONIBLES.map(cat => {
-                const jugadoresEnCat = jugadores.filter(j => j.categoria === cat.value);
-                const slots = Array.from({ length: cat.max });
-
-                return (
-                    <div key={cat.value} style={{background:'#f8fafc', padding:'15px', borderRadius:'12px', border:'1px solid #e2e8f0'}}>
-                        <div style={{display:'flex', justifyContent:'space-between', marginBottom:'10px', alignItems:'center'}}>
-                            <span style={{fontWeight:'800', color:'#1e3c72', fontSize:'12px', textTransform:'uppercase', letterSpacing:'0.5px'}}>
-                                {cat.label}
-                            </span>
-                            <span style={{fontSize:'11px', fontWeight:'600', color:'#64748b', background:'#e2e8f0', padding:'2px 8px', borderRadius:'10px'}}>
-                                {jugadoresEnCat.length} / {cat.max}
-                            </span>
-                        </div>
-                        
-                        <div style={{display:'flex', flexDirection:'column', gap:'6px'}}>
-                            {slots.map((_, i) => {
-                                const jugador = jugadoresEnCat[i];
-                                return (
-                                    <div key={i}>
-                                        {jugador ? (
-                                            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', background:'white', padding:'8px 12px', borderRadius:'8px', border:'1px solid #cbd5e1', boxShadow:'0 1px 2px rgba(0,0,0,0.05)'}}>
-                                                <span style={{fontSize:'14px', fontWeight:'600', color:'#1e293b'}}>
-                                                    {jugador.nombre} {jugador.capitan && '⭐'}
-                                                </span>
-                                                <button onClick={() => setJugadores(jugadores.filter(j => j !== jugador))} 
-                                                    style={{background:'#fee2e2', border:'none', color:'#ef4444', cursor:'pointer', fontWeight:'800', width:'24px', height:'24px', borderRadius:'6px', display:'flex', alignItems:'center', justifyContent:'center'}}>×</button>
-                                            </div>
-                                        ) : (
-                                            <button 
-                                                onClick={() => {
-                                                    const nombre = prompt(`Nombre del jugador para ${cat.label} (Espacio ${i+1}):`);
-                                                    if (nombre && nombre.trim()) {
-                                                        const esCap = confirm(`¿Es ${nombre} capitán/a?`);
-                                                        setJugadores([...jugadores, { nombre: nombre.trim(), categoria: cat.value, capitan: esCap }]);
-                                                    }
-                                                }}
-                                                style={{width:'100%', padding:'10px', background:'white', border:'2px dashed #cbd5e1', borderRadius:'8px', color:'#94a3b8', fontSize:'13px', cursor:'pointer', textAlign:'left', transition:'0.2s'}}
-                                                onMouseOver={e => e.target.style.borderColor = '#d4af37'}
-                                                onMouseOut={e => e.target.style.borderColor = '#cbd5e1'}>
-                                                + Asignar {cat.label} (Espacio {i+1})
-                                            </button>
-                                        )}
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-                );
-            })}
-        </div>
-        {error && <div style={{background:'#fee2e2', color:'#991b1b', padding:'10px', borderRadius:'8px', marginTop:'15px', fontSize:'14px'}}>⚠️ {error}</div>}
+        {/* Aquí pasamos el array de jugadores convertido a objeto para que la función lo entienda */}
+        {renderPlantelSlots(
+            // Convertimos el array temporal de jugadores del setup al formato de objeto por cat
+            jugadores.reduce((acc, j) => {
+                if(!acc[j.categoria]) acc[j.categoria] = [];
+                acc[j.categoria].push(j);
+                return acc;
+            }, {}),
+            (cat) => {
+                const nombre = prompt(`Nombre del jugador para ${NOMBRES_CATS[cat]}:`);
+                if(nombre) setJugadores([...jugadores, { nombre, categoria: cat, capitan: confirm('¿Es capitán?') }]);
+            },
+            (j) => { /* lógica editar opcional en setup */ },
+            (nom, cat) => setJugadores(jugadores.filter(j => j.nombre !== nom))
+        )}
     </div>
 )}
 
@@ -1396,7 +1363,7 @@
 
             // Plantel management
             const [showJugadorModal, setShowJugadorModal] = useState(false);
-            const [jugadorEditando, setJugadorEditando] = useState(null); // null = nuevo
+            const [jugadorEditando, setJugadorEditando] = useState(null);
             const [guardandoPlantel, setGuardandoPlantel] = useState(false);
 
             const plantelActual = config?.plantel || {};
@@ -1409,7 +1376,7 @@
                     setConfig(nuevaConfig);
                     localStorage.setItem(`${ID_PROYECTO}_config`, JSON.stringify(nuevaConfig));
                 } catch (e) {
-                    alert('Error al guardar plantel en Firebase. Verificá tu conexión.');
+                    alert('Error al guardar plantel en Firebase.');
                 } finally {
                     setGuardandoPlantel(false);
                 }
@@ -1417,119 +1384,76 @@
 
             const onGuardarJugador = async (jugadorData) => {
                 const nuevoPlantel = JSON.parse(JSON.stringify(plantelActual));
-                // Remove from old category if editing and category changed
-                if (jugadorEditando) {
+                // Si estamos editando, eliminamos la versión anterior del jugador
+                if (jugadorEditando && jugadorEditando.nombre) {
                     Object.keys(nuevoPlantel).forEach(cat => {
                         nuevoPlantel[cat] = (nuevoPlantel[cat] || []).filter(j => j.nombre !== jugadorEditando.nombre);
-                        if (nuevoPlantel[cat].length === 0) delete nuevoPlantel[cat];
                     });
                 }
+                // Agregamos a la nueva categoría
                 if (!nuevoPlantel[jugadorData.categoria]) nuevoPlantel[jugadorData.categoria] = [];
                 nuevoPlantel[jugadorData.categoria].push({ nombre: jugadorData.nombre, categoria: jugadorData.categoria, capitan: jugadorData.capitan });
+                
                 await guardarPlantelEnFirebase(nuevoPlantel);
                 setShowJugadorModal(false);
                 setJugadorEditando(null);
             };
 
             const eliminarJugador = async (nombreJugador, categoriaJugador) => {
-                if (!confirm(`¿Eliminar a ${nombreJugador}? Esta acción no se puede deshacer.`)) return;
+                if (!confirm(`¿Eliminar a ${nombreJugador}?`)) return;
                 const nuevoPlantel = JSON.parse(JSON.stringify(plantelActual));
                 nuevoPlantel[categoriaJugador] = (nuevoPlantel[categoriaJugador] || []).filter(j => j.nombre !== nombreJugador);
-                if (nuevoPlantel[categoriaJugador].length === 0) delete nuevoPlantel[categoriaJugador];
                 await guardarPlantelEnFirebase(nuevoPlantel);
-            };
-
-            const ascenderJugador = (jugador) => {
-                // Open edit modal with next category pre-selected
-                const idx = CATEGORIAS_DISPONIBLES.findIndex(c => c.value === jugador.categoria);
-                const catSuperior = idx > 0 ? CATEGORIAS_DISPONIBLES[idx - 1].value : jugador.categoria;
-                setJugadorEditando({ ...jugador, categoriaOriginal: jugador.categoria });
-                setShowJugadorModal(true);
-                // We'll preselect catSuperior in the modal by passing it
-            };
-
-            const ORDEN_CATS = ['damas_a','damas_b','damas_c','caballeros_2da','caballeros_3ra','caballeros_4ta','caballeros_5ta'];
-            const NOMBRES_CATS = { damas_a:'Damas A', damas_b:'Damas B', damas_c:'Damas C', caballeros_2da:'Caballeros 2da', caballeros_3ra:'Caballeros 3ra', caballeros_4ta:'Caballeros 4ta', caballeros_5ta:'Caballeros 5ta' };
-
-            const getCatSuperior = (cat) => {
-                const idx = CATEGORIAS_DISPONIBLES.findIndex(c => c.value === cat);
-                return idx > 0 ? CATEGORIAS_DISPONIBLES[idx - 1].value : null;
             };
 
             return (
                 <div>
                     <h2 style={{marginBottom: '20px', color: '#1e3c72'}}>Configuración del Torneo</h2>
                     
-                    {/* ── SECCIÓN: PLANTEL CON SISTEMA DE SLOTS ── */}
+                    {/* ── SECCIÓN DE SLOTS DE JUGADORES ── */}
                     {(userRole === 'admin' || userRole === 'capitan') && (
                         <div style={{marginBottom:'30px', padding:'20px', background:'#f8fafc', borderRadius:'12px', border:'1px solid #e2e8f0'}}>
-                            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'16px', flexWrap:'wrap', gap:'10px'}}>
+                            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'16px'}}>
                                 <h3 style={{color:'#1e3c72', margin:0}}>👤 Gestión del Plantel</h3>
-                                {guardandoPlantel && <div style={{color:'#64748b', fontSize:'13px'}}>⏳ Guardando en Firebase...</div>}
+                                {guardandoPlantel && <span style={{fontSize:'12px', color:'#64748b'}}>⏳ Guardando...</span>}
                             </div>
 
                             <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(280px, 1fr))', gap:'20px'}}>
                                 {ORDEN_CATS.map(catKey => {
-                                    // Obtenemos los jugadores de esta categoría o un array vacío si no hay ninguno
                                     const jugadoresEnCat = plantelActual[catKey] || [];
                                     const maxCupos = MAX_POR_CATEGORIA[catKey];
-                                    // Creamos un array virtual con el tamaño máximo permitido para esta categoría
                                     const slots = Array.from({ length: maxCupos });
 
                                     return (
                                         <div key={catKey} style={{background:'white', padding:'15px', borderRadius:'12px', border:'1px solid #e2e8f0', boxShadow:'0 2px 4px rgba(0,0,0,0.02)'}}>
                                             <div style={{fontWeight:'800', color:'#1e3c72', fontSize:'12px', marginBottom:'12px', borderBottom:'2px solid #f1f5f9', paddingBottom:'5px', display:'flex', justifyContent:'space-between'}}>
                                                 {NOMBRES_CATS[catKey].toUpperCase()}
-                                                <span style={{color: jugadoresEnCat.length === maxCupos ? '#10b981' : '#d4af37'}}>
-                                                    {jugadoresEnCat.length}/{maxCupos}
-                                                </span>
+                                                <span style={{color: '#d4af37'}}>{jugadoresEnCat.length}/{maxCupos}</span>
                                             </div>
 
                                             <div style={{display:'flex', flexDirection:'column', gap:'8px'}}>
                                                 {slots.map((_, i) => {
                                                     const jugador = jugadoresEnCat[i];
                                                     return (
-                                                        <div key={`${catKey}-slot-${i}`}>
+                                                        <div key={i}>
                                                             {jugador ? (
-                                                                /* SLOT OCUPADO POR JUGADOR */
                                                                 <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', padding:'8px 10px', background:'#f0f9ff', borderRadius:'8px', border:'1px solid #bae6fd'}}>
-                                                                    <span style={{fontSize:'13px', fontWeight:'600', color:'#1e293b', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
-                                                                        {jugador.nombre}
-                                                                        {jugador.capitan && <span style={{background:'#f59e0b', color:'white', fontSize:'9px', padding:'1px 5px', borderRadius:'4px', marginLeft:'6px'}}>CAP</span>}
+                                                                    <span style={{fontSize:'13px', fontWeight:'600', color:'#0369a1'}}>
+                                                                        {jugador.nombre} {jugador.capitan && '⭐'}
                                                                     </span>
-                                                                    <div style={{display:'flex', gap:'4px', flexShrink:0}}>
-                                                                        <button title="Editar"
-                                                                            onClick={() => { setJugadorEditando(jugador); setShowJugadorModal(true); }}
-                                                                            style={{background:'none', border:'none', cursor:'pointer', fontSize:'14px', padding:'2px'}}>✏️</button>
-                                                                        <button title="Eliminar"
-                                                                            onClick={() => eliminarJugador(jugador.nombre, catKey)}
-                                                                            style={{background:'none', border:'none', color:'#ef4444', cursor:'pointer', fontSize:'14px', padding:'2px'}}>🗑️</button>
+                                                                    <div style={{display:'flex', gap:'4px'}}>
+                                                                        <button onClick={() => { setJugadorEditando(jugador); setShowJugadorModal(true); }} style={{border:'none', background:'none', cursor:'pointer'}}>✏️</button>
+                                                                        <button onClick={() => eliminarJugador(jugador.nombre, catKey)} style={{border:'none', background:'none', color:'#ef4444', cursor:'pointer'}}>🗑️</button>
                                                                     </div>
                                                                 </div>
                                                             ) : (
-                                                                /* SLOT VACÍO - BOTÓN DE AGREGAR */
                                                                 <button 
                                                                     onClick={() => {
                                                                         setJugadorEditando({ nombre: '', categoria: catKey, capitan: false });
                                                                         setShowJugadorModal(true);
                                                                     }}
-                                                                    style={{
-                                                                        width:'100%', 
-                                                                        padding:'8px', 
-                                                                        background:'#f8fafc', 
-                                                                        border:'1px dashed #cbd5e1', 
-                                                                        borderRadius:'8px', 
-                                                                        color:'#94a3b8', 
-                                                                        fontSize:'12px', 
-                                                                        cursor:'pointer', 
-                                                                        textAlign:'left',
-                                                                        display:'flex',
-                                                                        alignItems:'center',
-                                                                        gap:'5px'
-                                                                    }}
-                                                                >
-                                                                    <span>➕</span>
-                                                                    <span>Espacio {i + 1} disponible</span>
+                                                                    style={{width:'100%', padding:'8px', background:'#f8fafc', border:'1px dashed #cbd5e1', borderRadius:'8px', color:'#94a3b8', fontSize:'12px', cursor:'pointer', textAlign:'left'}}>
+                                                                    + Espacio {i + 1} disponible
                                                                 </button>
                                                             )}
                                                         </div>
@@ -1581,7 +1505,7 @@
                                 )}
                                 {equipos.length > 0 && (
                                     <button className="btn" style={{margin:0, background:'#fef3c7', color:'#92400e', border:'1px solid #f59e0b', padding:'8px 14px', fontSize:'13px'}}
-                                        onClick={() => { if(confirm('¿Resetear equipos? Se perderá la configuración de zonas.')) { guardarEquiposSeleccionados([]); setEditandoNumEquipos(true); setNumEquiposTemp(numEquipos); } }}>
+                                        onClick={() => { if(confirm('¿Resetear equipos?')) { guardarEquiposSeleccionados([]); setEditandoNumEquipos(true); setNumEquiposTemp(numEquipos); } }}>
                                         🔄 Resetear Equipos
                                     </button>
                                 )}
@@ -1599,79 +1523,7 @@
                         </div>
                     )}
 
-                    {/* ── SECCIÓN: FECHAS ── */}
-                    {equipos.length >= numEquipos && (
-                        <div style={{marginTop: userRole !== 'jugador' ? '20px' : '0px'}}>
-                            {userRole !== 'jugador' && (
-                                <div>
-                                    <h3 style={{marginBottom: '20px', color:'#1e3c72'}}>Configurar Fechas</h3>
-                                    {[1, 2, 3, 4].map(numFecha => (
-                                        <div key={numFecha} className="form-group">
-                                            <label>Rival Fecha {numFecha}</label>
-                                            <select value={fechas[numFecha-1]?.rival || ''} onChange={(e) => { if (e.target.value) { agregarFecha(numFecha, e.target.value); } }}>
-                                                <option value="">Seleccionar rival...</option>
-                                                {equipos.filter(eq => !eq.esGoat).map((eq, idx) => (<option key={idx} value={eq.nombre}>{eq.nombre}</option>))}
-                                            </select>
-                                        </div>
-                                    ))}
-                                    {fechas.filter(Boolean).length === 4 && (<div className="success-message">✓ Todas las fechas configuradas. Ir a la pestaña "Fechas" para armar los equipos.</div>)}
-                                </div>
-                            )}
-
-                            <div style={{marginTop: userRole !== 'jugador' ? '40px' : '0px', paddingTop: userRole !== 'jugador' ? '30px' : '0px', borderTop: userRole !== 'jugador' ? '2px solid #ddd' : 'none'}}>
-                                <h3 style={{marginBottom: '20px'}}>Armado de Zonas</h3>
-                                
-                                {userRole === 'jugador' ? (
-                                    <div className="grid-2">
-                                        <div style={{background: '#f8f9fa', padding: '20px', borderRadius: '8px', border: '1px solid #e2e8f0'}}>
-                                            <h4 style={{marginBottom: '15px', color: '#1e3c72', borderBottom: '2px solid #d4af37', paddingBottom: '5px'}}>Zona 1</h4>
-                                            <ul style={{listStyle: 'none', padding: 0}}>
-                                                {zonasConfig.zona1.map((eq, idx) => eq ? <li key={idx} style={{padding: '8px 0', borderBottom: '1px solid #ddd', fontWeight: eq===miEquipoNombre?'bold':'normal', color: eq===miEquipoNombre?'#10b981':'#333'}}>{eq} {eq===miEquipoNombre&&'⭐'}</li> : null)}
-                                            </ul>
-                                        </div>
-                                        <div style={{background: '#f8f9fa', padding: '20px', borderRadius: '8px', border: '1px solid #e2e8f0'}}>
-                                            <h4 style={{marginBottom: '15px', color: '#1e3c72', borderBottom: '2px solid #d4af37', paddingBottom: '5px'}}>Zona 2</h4>
-                                            <ul style={{listStyle: 'none', padding: 0}}>
-                                                {zonasConfig.zona2.map((eq, idx) => eq ? <li key={idx} style={{padding: '8px 0', borderBottom: '1px solid #ddd', fontWeight: eq===miEquipoNombre?'bold':'normal', color: eq===miEquipoNombre?'#10b981':'#333'}}>{eq} {eq===miEquipoNombre&&'⭐'}</li> : null)}
-                                            </ul>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="grid-2">
-                                        <div>
-                                            <label><strong>Zona 1</strong></label>
-                                            {[0, 1, 2, 3, 4].map(idx => (
-                                                <div key={idx} className="form-group">
-                                                    <select value={zonasConfig.zona1[idx] || ''} onChange={(e) => { const n = {...zonasConfig}; n.zona1[idx] = e.target.value; setZonasConfig(n); }}>
-                                                        <option value="">Seleccionar equipo...</option>
-                                                        {equipos.map((eq, eqIdx) => (<option key={eqIdx} value={eq.nombre}>{eq.nombre}</option>))}
-                                                    </select>
-                                                </div>
-                                            ))}
-                                        </div>
-                                        <div>
-                                            <label><strong>Zona 2</strong></label>
-                                            {[0, 1, 2, 3, 4].map(idx => (
-                                                <div key={idx} className="form-group">
-                                                    <select value={zonasConfig.zona2[idx] || ''} onChange={(e) => { const n = {...zonasConfig}; n.zona2[idx] = e.target.value; setZonasConfig(n); }}>
-                                                        <option value="">Seleccionar equipo...</option>
-                                                        {equipos.map((eq, eqIdx) => (<option key={eqIdx} value={eq.nombre}>{eq.nombre}</option>))}
-                                                    </select>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {userRole !== 'jugador' && zonasConfig.zona1.filter(e => e).length === 5 && zonasConfig.zona2.filter(e => e).length === 5 && (
-                                    <div style={{marginTop: '20px'}}>
-                                        <button className="btn btn-success btn-responsive" onClick={() => setShowAsignarFechasModal(true)}>Generar Cruces de Zonas</button>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
-
+                    {/* Modales */}
                     {showEquiposModal && (
                         <ModalCargarEquipos numEquipos={numEquipos} baseEquipos={baseEquipos} setBaseEquipos={setBaseEquipos}
                             onGuardar={(rivales) => { guardarEquiposSeleccionados(rivales); setShowEquiposModal(false); }}
@@ -1686,22 +1538,9 @@
                             onClose={() => { setShowJugadorModal(false); setJugadorEditando(null); }}
                         />
                     )}
-
-                    {showAsignarFechasModal && (
-                        <AsignarFechasModal zonasConfig={zonasConfig} equipos={equipos} onClose={() => setShowAsignarFechasModal(false)}
-                            onGenerar={(crucesGenerados) => {
-                                const datosActuales = localStorage.getItem(ID_PROYECTO + '_datos');
-                                const datos = datosActuales ? JSON.parse(datosActuales) : {};
-                                datos.crucesFinales = crucesGenerados; localStorage.setItem(ID_PROYECTO + '_datos', JSON.stringify(datos));
-                                if (window.actualizarCrucesFinales) window.actualizarCrucesFinales(crucesGenerados);
-                                setShowAsignarFechasModal(false); alert('Cruces generados exitosamente.');
-                            }}
-                        />
-                    )}
                 </div>
             );
         }
-
         function FechasTab({ userRole, fechas, procesarHorarios, actualizarJugadores, contarPartidosJugador, generarPDF, setFechas, plantel }) {
             const [fechaSeleccionada, setFechaSeleccionada] = useState(0);
             const [showHorarioModal, setShowHorarioModal] = useState(false);
