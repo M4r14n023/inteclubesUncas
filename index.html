@@ -2740,15 +2740,12 @@
 
         function TablasTab({ userRole, equipos, fechas, resultados, crucesFinales, setCrucesFinales, zonasConfig, setZonasConfig }) {
             const [showCruceModal, setShowCruceModal] = useState(false);
-            const [cruceActual, setCruceActual] = useState({ tipo: '', equipo1: '', equipo2: '', resultado1: '', resultado2: '' });
+            const [cruceActual, setCruceActual] = useState({ zona: '', tipo: '', equipo1: '', equipo2: '', resultado1: '', resultado2: '' });
             const [editandoCruce, setEditandoCruce] = useState(null);
 
             // Nombre dinámico del equipo propio
             const miEquipoNombre = (equipos.find(e => e.esGoat) || { nombre: 'Mi Equipo' }).nombre;
             
-            // Filtramos a nuestro equipo para que NO aparezca en las opciones manuales
-            const equiposDisponibles = equipos.filter(eq => !eq.esGoat);
-
             if (equipos.length < 10) return <div className="warning">Por favor, que un Capitán configure primero los equipos en la pestaña "Configuración".</div>;
 
             const calcularTablaZona = (zona) => {
@@ -2819,13 +2816,34 @@
 
             const agregarCruce = () => {
                 if (!cruceActual.equipo1 || !cruceActual.equipo2 || !cruceActual.tipo) { alert('Completá todos los campos'); return; }
+
+                // Control de duplicados: verificamos si ya existe el mismo partido (ignorando el que estamos editando si aplica)
+                const esDuplicado = crucesFinales.some((c, idx) => {
+                    if (idx === editandoCruce) return false;
+                    return c.tipo === cruceActual.tipo && 
+                           ((c.equipo1 === cruceActual.equipo1 && c.equipo2 === cruceActual.equipo2) || 
+                            (c.equipo1 === cruceActual.equipo2 && c.equipo2 === cruceActual.equipo1));
+                });
+
+                if (esDuplicado) {
+                    alert(`¡Atención! El partido entre ${cruceActual.equipo1} y ${cruceActual.equipo2} para la instancia "${cruceActual.tipo}" ya fue cargado previamente.`);
+                    return;
+                }
+
                 if (editandoCruce !== null) { const nuevosCruces = [...crucesFinales]; nuevosCruces[editandoCruce] = cruceActual; setCrucesFinales(nuevosCruces); } 
                 else { setCrucesFinales([...crucesFinales, cruceActual]); }
-                setShowCruceModal(false); setCruceActual({ tipo: '', equipo1: '', equipo2: '', resultado1: '', resultado2: '' }); setEditandoCruce(null);
+                setShowCruceModal(false); setCruceActual({ zona: '', tipo: '', equipo1: '', equipo2: '', resultado1: '', resultado2: '' }); setEditandoCruce(null);
             };
+            
             const eliminarCruce = (idx) => { if (confirm('¿Eliminar este cruce?')) setCrucesFinales(crucesFinales.filter((_, i) => i !== idx)); };
 
             const tablaZona1 = calcularTablaZona(1); const tablaZona2 = calcularTablaZona(2); const tablaGeneral = calcularTablaGeneral();
+
+            // Lógica para filtrar los equipos según la zona seleccionada en el modal
+            const equiposOpciones = cruceActual.zona === 'zona1' ? (zonasConfig.zona1 || []).filter(e => e && e !== miEquipoNombre)
+                : cruceActual.zona === 'zona2' ? (zonasConfig.zona2 || []).filter(e => e && e !== miEquipoNombre)
+                : cruceActual.zona === 'todas' ? equipos.filter(e => !e.esGoat).map(e => e.nombre)
+                : [];
 
             return (
                 <div>
@@ -2892,7 +2910,7 @@
                                     <h3 style={{marginBottom: '4px', color: '#1e3c72'}}>Resultados del Torneo</h3>
                                     <p style={{color: '#64748b', fontSize: '13px', marginBottom: '16px'}}>Acá podés agregar los resultados de los otros equipos para que se actualicen las tablas.</p>
                                     
-                                    <button className="btn btn-primary btn-responsive" onClick={() => { setEditandoCruce(null); setCruceActual({ tipo: '', equipo1: '', equipo2: '', resultado1: '', resultado2: '' }); setShowCruceModal(true); }}>
+                                    <button className="btn btn-primary btn-responsive" onClick={() => { setEditandoCruce(null); setCruceActual({ zona: '', tipo: '', equipo1: '', equipo2: '', resultado1: '', resultado2: '' }); setShowCruceModal(true); }}>
                                         ➕ Agregar Partido (Otros Equipos)
                                     </button>
 
@@ -2927,11 +2945,14 @@
                                         {crucesFinales.map((cruce, idx) => (
                                             <div key={`manual-${idx}`} className="flex-mobile-col" style={{ background: '#f8f9fa', padding: '15px', borderRadius: '8px', marginBottom: '10px', border: '2px solid #ddd', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '15px' }}>
                                                 <div>
-                                                    <strong>{cruce.tipo}</strong>
+                                                    <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                                                        <strong>{cruce.tipo}</strong>
+                                                        {cruce.zona && cruce.zona !== 'todas' && <span style={{fontSize: '11px', background: '#e2e8f0', color: '#475569', padding: '2px 6px', borderRadius: '4px'}}>{cruce.zona === 'zona1' ? 'Zona 1' : 'Zona 2'}</span>}
+                                                    </div>
                                                     <div style={{marginTop: '8px'}}>{cruce.equipo1} <strong>{cruce.resultado1 || '0'}</strong> - <strong>{cruce.resultado2 || '0'}</strong> {cruce.equipo2}</div>
                                                 </div>
                                                 <div style={{display: 'flex', gap: '10px'}}>
-                                                    <button className="btn btn-primary" style={{padding: '6px 12px', fontSize: '14px', margin: '0'}} onClick={() => { setEditandoCruce(idx); setCruceActual(cruce); setShowCruceModal(true); }}>✏️</button>
+                                                    <button className="btn btn-primary" style={{padding: '6px 12px', fontSize: '14px', margin: '0'}} onClick={() => { setEditandoCruce(idx); setCruceActual({...cruce, zona: cruce.zona || 'todas'}); setShowCruceModal(true); }}>✏️</button>
                                                     <button className="btn btn-danger" style={{padding: '6px 12px', fontSize: '14px', margin: '0'}} onClick={() => eliminarCruce(idx)}>🗑️</button>
                                                 </div>
                                             </div>
@@ -2944,31 +2965,47 @@
                                 <div className="modal" onClick={() => {}}>
                                     <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                                         <div className="modal-header">{editandoCruce !== null ? 'Editar Partido' : 'Agregar Partido (Otros Equipos)'}</div>
+                                        
+                                        <div className="form-group" style={{background: '#f8fafc', padding: '15px', borderRadius: '8px', border: '1px solid #e2e8f0'}}>
+                                            <label style={{color: '#1e3c72'}}>Filtro de Zona (Obligatorio)</label>
+                                            <select value={cruceActual.zona} onChange={(e) => setCruceActual({...cruceActual, zona: e.target.value, equipo1: '', equipo2: ''})} style={{border: '2px solid #cbd5e1'}}>
+                                                <option value="">Primero seleccioná la zona...</option>
+                                                <option value="zona1">Partidos de la Zona 1</option>
+                                                <option value="zona2">Partidos de la Zona 2</option>
+                                                <option value="todas">Interzonal / Play-Offs (Todas las zonas)</option>
+                                            </select>
+                                        </div>
+
                                         <div className="form-group">
-                                            <label>Instancia</label>
+                                            <label>Instancia / Tipo</label>
                                             <select value={cruceActual.tipo} onChange={(e) => setCruceActual({...cruceActual, tipo: e.target.value})}>
                                                 <option value="">Seleccionar...</option><option value="Fecha 1">Fecha 1</option><option value="Fecha 2">Fecha 2</option><option value="Fecha 3">Fecha 3</option><option value="Fecha 4">Fecha 4</option><option value="Interzonal">Interzonal</option><option value="Octavos de Final">Octavos de Final</option><option value="Cuartos de Final">Cuartos de Final</option><option value="Semifinal">Semifinal</option><option value="Final">Final</option>
                                             </select>
                                         </div>
-                                        <div className="form-group">
-                                            <label>Equipo 1</label>
-                                            <select value={cruceActual.equipo1} onChange={(e) => setCruceActual({...cruceActual, equipo1: e.target.value})}>
-                                                <option value="">Seleccionar...</option>
-                                                {equiposDisponibles.filter(eq => eq.nombre !== cruceActual.equipo2).map((eq, idx) => (<option key={idx} value={eq.nombre}>{eq.nombre}</option>))}
-                                            </select>
+                                        <div className="grid-2">
+                                            <div className="form-group">
+                                                <label>Equipo 1</label>
+                                                <select value={cruceActual.equipo1} onChange={(e) => setCruceActual({...cruceActual, equipo1: e.target.value})} disabled={!cruceActual.zona}>
+                                                    <option value="">Seleccionar...</option>
+                                                    {equiposOpciones.filter(eq => eq !== cruceActual.equipo2).map((eq, idx) => (<option key={idx} value={eq}>{eq}</option>))}
+                                                </select>
+                                            </div>
+                                            <div className="form-group"><label>Puntos Equipo 1</label><input type="number" value={cruceActual.resultado1} onChange={(e) => setCruceActual({...cruceActual, resultado1: e.target.value})} placeholder="Puntos a favor"/></div>
                                         </div>
-                                        <div className="form-group"><label>Puntos Equipo 1</label><input type="number" value={cruceActual.resultado1} onChange={(e) => setCruceActual({...cruceActual, resultado1: e.target.value})} placeholder="Puntos a favor"/></div>
-                                        <div className="form-group">
-                                            <label>Equipo 2</label>
-                                            <select value={cruceActual.equipo2} onChange={(e) => setCruceActual({...cruceActual, equipo2: e.target.value})}>
-                                                <option value="">Seleccionar...</option>
-                                                {equiposDisponibles.filter(eq => eq.nombre !== cruceActual.equipo1).map((eq, idx) => (<option key={idx} value={eq.nombre}>{eq.nombre}</option>))}
-                                            </select>
+                                        <div className="grid-2">
+                                            <div className="form-group">
+                                                <label>Equipo 2</label>
+                                                <select value={cruceActual.equipo2} onChange={(e) => setCruceActual({...cruceActual, equipo2: e.target.value})} disabled={!cruceActual.zona}>
+                                                    <option value="">Seleccionar...</option>
+                                                    {equiposOpciones.filter(eq => eq !== cruceActual.equipo1).map((eq, idx) => (<option key={idx} value={eq}>{eq}</option>))}
+                                                </select>
+                                            </div>
+                                            <div className="form-group"><label>Puntos Equipo 2</label><input type="number" value={cruceActual.resultado2} onChange={(e) => setCruceActual({...cruceActual, resultado2: e.target.value})} placeholder="Puntos a favor"/></div>
                                         </div>
-                                        <div className="form-group"><label>Puntos Equipo 2</label><input type="number" value={cruceActual.resultado2} onChange={(e) => setCruceActual({...cruceActual, resultado2: e.target.value})} placeholder="Puntos a favor"/></div>
+                                        
                                         <div className="flex-mobile-col" style={{display: 'flex', gap: '10px', marginTop: '20px'}}>
                                             <button className="btn btn-primary btn-responsive" onClick={agregarCruce}>{editandoCruce !== null ? 'Actualizar' : 'Guardar'}</button>
-                                            <button className="btn btn-danger btn-responsive" onClick={() => { setShowCruceModal(false); setCruceActual({ tipo: '', equipo1: '', equipo2: '', resultado1: '', resultado2: '' }); setEditandoCruce(null); }}>Cancelar</button>
+                                            <button className="btn btn-danger btn-responsive" onClick={() => { setShowCruceModal(false); setCruceActual({ zona: '', tipo: '', equipo1: '', equipo2: '', resultado1: '', resultado2: '' }); setEditandoCruce(null); }}>Cancelar</button>
                                         </div>
                                     </div>
                                 </div>
