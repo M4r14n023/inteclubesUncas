@@ -2817,16 +2817,15 @@
             const agregarCruce = () => {
                 if (!cruceActual.equipo1 || !cruceActual.equipo2 || !cruceActual.tipo) { alert('Completá todos los campos'); return; }
 
-                // Control de duplicados: verificamos si ya existe el mismo partido (ignorando el que estamos editando si aplica)
+                // Control de duplicados ESTRICTO: verificamos si ya existe un partido entre estos dos equipos en cualquier instancia
                 const esDuplicado = crucesFinales.some((c, idx) => {
                     if (idx === editandoCruce) return false;
-                    return c.tipo === cruceActual.tipo && 
-                           ((c.equipo1 === cruceActual.equipo1 && c.equipo2 === cruceActual.equipo2) || 
+                    return ((c.equipo1 === cruceActual.equipo1 && c.equipo2 === cruceActual.equipo2) || 
                             (c.equipo1 === cruceActual.equipo2 && c.equipo2 === cruceActual.equipo1));
                 });
 
                 if (esDuplicado) {
-                    alert(`¡Atención! El partido entre ${cruceActual.equipo1} y ${cruceActual.equipo2} para la instancia "${cruceActual.tipo}" ya fue cargado previamente.`);
+                    alert(`¡Atención! El partido entre ${cruceActual.equipo1} y ${cruceActual.equipo2} ya fue cargado. No se pueden repetir cruces en la fase de zonas.`);
                     return;
                 }
 
@@ -2907,11 +2906,11 @@
 
                             {userRole !== 'jugador' && (
                                 <div>
-                                    <h3 style={{marginBottom: '4px', color: '#1e3c72'}}>Resultados del Torneo</h3>
-                                    <p style={{color: '#64748b', fontSize: '13px', marginBottom: '16px'}}>Acá podés agregar los resultados de los otros equipos para que se actualicen las tablas.</p>
+                                    <h3 style={{marginBottom: '4px', color: '#1e3c72'}}>Resultados Fase de Grupos</h3>
+                                    <p style={{color: '#64748b', fontSize: '13px', marginBottom: '16px'}}>Acá podés agregar los resultados de los cruces de los demás equipos (fase de grupos).</p>
                                     
                                     <button className="btn btn-primary btn-responsive" onClick={() => { setEditandoCruce(null); setCruceActual({ zona: '', tipo: '', equipo1: '', equipo2: '', resultado1: '', resultado2: '' }); setShowCruceModal(true); }}>
-                                        ➕ Agregar Partido (Otros Equipos)
+                                        ➕ Agregar Partido Zonal
                                     </button>
 
                                     <div style={{marginTop: '20px'}}>
@@ -2964,7 +2963,7 @@
                             {showCruceModal && (
                                 <div className="modal" onClick={() => {}}>
                                     <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                                        <div className="modal-header">{editandoCruce !== null ? 'Editar Partido' : 'Agregar Partido (Otros Equipos)'}</div>
+                                        <div className="modal-header">{editandoCruce !== null ? 'Editar Partido' : 'Agregar Partido (Fase de Grupos)'}</div>
                                         
                                         <div className="form-group" style={{background: '#f8fafc', padding: '15px', borderRadius: '8px', border: '1px solid #e2e8f0'}}>
                                             <label style={{color: '#1e3c72'}}>Filtro de Zona (Obligatorio)</label>
@@ -2972,14 +2971,19 @@
                                                 <option value="">Primero seleccioná la zona...</option>
                                                 <option value="zona1">Partidos de la Zona 1</option>
                                                 <option value="zona2">Partidos de la Zona 2</option>
-                                                <option value="todas">Interzonal / Play-Offs (Todas las zonas)</option>
+                                                <option value="todas">Interzonal (Equipos de distinta zona)</option>
                                             </select>
                                         </div>
 
                                         <div className="form-group">
-                                            <label>Instancia / Tipo</label>
+                                            <label>Instancia / Fecha</label>
                                             <select value={cruceActual.tipo} onChange={(e) => setCruceActual({...cruceActual, tipo: e.target.value})}>
-                                                <option value="">Seleccionar...</option><option value="Fecha 1">Fecha 1</option><option value="Fecha 2">Fecha 2</option><option value="Fecha 3">Fecha 3</option><option value="Fecha 4">Fecha 4</option><option value="Interzonal">Interzonal</option><option value="Octavos de Final">Octavos de Final</option><option value="Cuartos de Final">Cuartos de Final</option><option value="Semifinal">Semifinal</option><option value="Final">Final</option>
+                                                <option value="">Seleccionar...</option>
+                                                <option value="Fecha 1">Fecha 1</option>
+                                                <option value="Fecha 2">Fecha 2</option>
+                                                <option value="Fecha 3">Fecha 3</option>
+                                                <option value="Fecha 4">Fecha 4</option>
+                                                <option value="Interzonal">Interzonal</option>
                                             </select>
                                         </div>
                                         <div className="grid-2">
