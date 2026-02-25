@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#1a1a1a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Análisis de Rendimiento</title>
+    <link rel="icon" type="image/jpeg" href="GOAT.jpeg">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2416 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        /* ── HEADER ── */
+        .page-header {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2416 100%);
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            color: #d4af37;
+        }
+        .header-title img {
+            width: 54px;
+            height: 54px;
+            border-radius: 50%;
+            border: 2px solid #d4af37;
+            object-fit: cover;
+        }
+        .header-title h1 { font-size: 22px; color: #d4af37; }
+        .header-title p  { font-size: 13px; color: #c5a572; margin-top: 3px; }
+
+        .header-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+        .btn-volver {
+            background: rgba(255,255,255,0.12);
+            color: #d4af37;
+            padding: 9px 18px;
+            border-radius: 8px;
+            border: 1px solid rgba(212,175,55,0.4);
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s;
+            font-size: 14px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-volver:hover { background: rgba(255,255,255,0.2); }
+        .btn-excel {
+            background: #10b981;
+            color: white;
+            padding: 9px 18px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s;
+            font-size: 14px;
+        }
+        .btn-excel:hover { background: #059669; }
+
+        /* ── SYNC STATUS ── */
+        .sync-bar {
+            background: #f8fafc;
+            padding: 8px 30px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: #64748b;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        /* ── TABS ── */
+        .sub-tabs {
+            display: flex;
+            gap: 0;
+            border-bottom: 2px solid #e2e8f0;
+            background: #f8fafc;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .sub-tab {
+            padding: 14px 20px;
+            background: transparent;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            color: #64748b;
+            border: none;
+            border-bottom: 3px solid transparent;
+            white-space: nowrap;
+            transition: 0.2s;
+            margin-bottom: -2px;
+        }
+        .sub-tab:hover { color: #1e3c72; background: #f1f5f9; }
+        .sub-tab.active { color: #1e3c72; border-bottom-color: #d4af37; background: white; }
+
+        /* ── CONTENT ── */
+        .content { padding: 30px; }
+
+        /* ── GRID ── */
+        .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+
+        /* ── CARDS ── */
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .card-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: #1e3c72;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f1f5f9;
+        }
+
+        /* ── STAT KPI BOX ── */
+        .kpi-box {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 18px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .kpi-box.green  { background: linear-gradient(135deg, #059669 0%, #10b981 100%); }
+        .kpi-box.gold   { background: linear-gradient(135deg, #b45309 0%, #d4af37 100%); }
+        .kpi-box.red    { background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%); }
+        .kpi-num { font-size: 32px; font-weight: 800; line-height: 1; }
+        .kpi-label { font-size: 12px; opacity: 0.85; margin-top: 4px; }
+
+        /* ── EFECTIVIDAD BAR ── */
+        .efectividad-bar {
+            display: flex;
+            height: 24px;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #e2e8f0;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.08);
+            margin-top: 6px;
+        }
+        .ef-ganados {
+            background: linear-gradient(90deg, #059669, #10b981);
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-size: 11px; font-weight: 700;
+            transition: width 0.6s ease;
+        }
+        .ef-perdidos {
+            background: linear-gradient(90deg, #dc2626, #ef4444);
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-size: 11px; font-weight: 700;
+            transition: width 0.6s ease;
+        }
+
+        /* ── HISTORIAL ITEMS ── */
+        .historial-item {
+            padding: 10px 12px;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+        .historial-item:last-child { border-bottom: none; }
+        .badge-win   { background: #d1fae5; color: #065f46; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+        .badge-loss  { background: #fee2e2; color: #991b1b; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+        .badge-cat   { background: #eff6ff; color: #1d4ed8; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+
+        /* ── RANKING ITEM ── */
+        .rank-item {
+            padding: 10px 12px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 6px;
+            border: 1px solid #e2e8f0;
+            transition: 0.2s;
+        }
+        .rank-item:hover { border-color: #d4af37; background: #fffbef; }
+        .rank-item.top-1 { background: #fffbef; border-color: #d4af37; }
+        .rank-item.top-2 { background: #f8fafc; border-color: #94a3b8; }
+        .rank-item.top-3 { background: #fff8f1; border-color: #b45309; }
+        .rank-num { font-size: 16px; font-weight: 800; min-width: 28px; text-align: center; }
+
+        /* ── TABLE ── */
+        .table-container { width: 100%; overflow-x: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .stats-table { width: 100%; border-collapse: collapse; min-width: 600px; }
+        .stats-table th { background: #f1f5f9; padding: 12px 14px; text-align: left; font-weight: 700; color: #1e3c72; font-size: 13px; border-bottom: 2px solid #e2e8f0; }
+        .stats-table td { padding: 11px 14px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
+        .stats-table tr:hover td { background: #f8fafc; }
+        .stats-table .cat-header td { background: #eff6ff; font-weight: 700; color: #1d4ed8; font-size: 12px; letter-spacing: 0.5px; text-transform: uppercase; }
+
+        /* ── FORM ── */
+        .filter-panel { background: #f8fafc; padding: 20px; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 20px; }
+        label { display: block; font-weight: 600; color: #334155; font-size: 13px; margin-bottom: 5px; }
+        select, input[type="text"] {
+            width: 100%; padding: 10px 12px; border: 2px solid #e2e8f0; border-radius: 8px;
+            font-size: 14px; outline: none; transition: border-color 0.2s; background: white;
+        }
+        select:focus, input:focus { border-color: #d4af37; }
+        select:disabled { background: #f1f5f9; cursor: not-allowed; opacity: 0.7; }
+        .form-group { margin-bottom: 0; }
+
+        /* ── LOADING / EMPTY STATE ── */
+        .empty-state {
+            text-align: center; padding: 50px 20px;
+            color: #94a3b8;
+        }
+        .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+        .empty-state p { font-size: 15px; }
+
+        /* ── RACHA ── */
+        .racha-dot {
+            width: 22px; height: 22px; border-radius: 50%; display: inline-flex;
+            align-items: center; justify-content: center; font-size: 10px; font-weight: 700;
+            color: white; margin: 2px;
+        }
+
+        /* ── RESPONSIVE ── */
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            .content { padding: 15px; }
+            .page-header { padding: 15px; }
+            .grid-2, .grid-3 { grid-template-columns: 1fr; }
+            .header-title h1 { font-size: 18px; }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        // ============================================================
+        //  ⚙️  MISMO ID_PROYECTO que index.html — NO CAMBIAR AQUÍ
+        //  Este archivo lee automáticamente desde el mismo nodo Firebase.
+        // ============================================================
+        const ID_PROYECTO = 'nombre_del_equipo';
+        // ============================================================
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDWut5pII90tdvaB_AwkvdQ6Oq3TgM5wKY",
+            authDomain: "hub-universitario.firebaseapp.com",
+            databaseURL: "https://hub-universitario-default-rtdb.firebaseio.com",
+            projectId: "hub-universitario",
+            storageBucket: "hub-universitario.firebasestorage.app",
+            messagingSenderId: "642915679228",
+            appId: "1:642915679228:web:e6e48b25869d74c14cfe87"
+        };
+
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        const FIREBASE_PATH = `torneos/${ID_PROYECTO}`;
+
+        const PARTIDOS = [
+            { id: 9,  tipo: "Dobles Damas A/B",                  categorias: ["damas_a","damas_b"],                numJugadores: 2, grupo: "damas" },
+            { id: 21, tipo: "Dobles Damas A",                     categorias: ["damas_a"],                          numJugadores: 2, grupo: "damas" },
+            { id: 16, tipo: "Dobles Damas B",                     categorias: ["damas_b"],                          numJugadores: 2, grupo: "damas" },
+            { id: 26, tipo: "Dobles Damas B/C",                   categorias: ["damas_b","damas_c"],                numJugadores: 2, grupo: "damas" },
+            { id: 1,  tipo: "Dobles Damas C-1",                   categorias: ["damas_c"],                          numJugadores: 2, grupo: "damas" },
+            { id: 22, tipo: "Dobles Damas C-2",                   categorias: ["damas_c"],                          numJugadores: 2, grupo: "damas" },
+            { id: 4,  tipo: "Mixto D (Dama A + Caballero 2da)",  categorias: ["damas_a","caballeros_2da"],         numJugadores: 2, mixto: true, grupo: "mixtos" },
+            { id: 14, tipo: "Mixto A (Dama A + Caballero 3ra)",  categorias: ["damas_a","caballeros_3ra"],         numJugadores: 2, mixto: true, grupo: "mixtos" },
+            { id: 19, tipo: "Mixto B (Dama B + Caballero 4ta)",  categorias: ["damas_b","caballeros_4ta"],         numJugadores: 2, mixto: true, grupo: "mixtos" },
+            { id: 11, tipo: "Mixto E (Dama B + Caballero 5ta)",  categorias: ["damas_b","caballeros_5ta"],         numJugadores: 2, mixto: true, grupo: "mixtos" },
+            { id: 8,  tipo: "Mixto C (Dama C + Caballero 5ta)",  categorias: ["damas_c","caballeros_5ta"],         numJugadores: 2, mixto: true, grupo: "mixtos" },
+            { id: 20, tipo: "Single Caballero 2da",              categorias: ["caballeros_2da"],                   numJugadores: 1, grupo: "singles" },
+            { id: 10, tipo: "Single Caballero 3ra",              categorias: ["caballeros_3ra"],                   numJugadores: 1, grupo: "singles" },
+            { id: 6,  tipo: "Single Caballero 4ta",              categorias: ["caballeros_4ta"],                   numJugadores: 1, grupo: "singles" },
+            { id: 24, tipo: "Single Caballero 5ta",              categorias: ["caballeros_5ta"],                   numJugadores: 1, grupo: "singles" },
+            { id: 7,  tipo: "Dobles Caballeros 2da/2da",        categorias: ["caballeros_2da"],                   numJugadores: 2, grupo: "dobles_puros" },
+            { id: 15, tipo: "Dobles Caballeros 2da",             categorias: ["caballeros_2da"],                   numJugadores: 2, grupo: "dobles_puros" },
+            { id: 5,  tipo: "Dobles Caballeros 3ra/3ra",        categorias: ["caballeros_3ra"],                   numJugadores: 2, grupo: "dobles_puros" },
+            { id: 18, tipo: "Dobles Caballeros 3ra",             categorias: ["caballeros_3ra"],                   numJugadores: 2, grupo: "dobles_puros" },
+            { id: 12, tipo: "Dobles Caballeros 4ta/4ta",        categorias: ["caballeros_4ta"],                   numJugadores: 2, grupo: "dobles_puros" },
+            { id: 23, tipo: "Dobles Caballeros 4ta",             categorias: ["caballeros_4ta"],                   numJugadores: 2, grupo: "dobles_puros" },
+            { id: 3,  tipo: "Dobles Caballeros 5ta/5ta",        categorias: ["caballeros_5ta"],                   numJugadores: 2, grupo: "dobles_puros" },
+            { id: 13, tipo: "Dobles Caballeros 5ta",             categorias: ["caballeros_5ta"],                   numJugadores: 2, grupo: "dobles_puros" },
+            { id: 25, tipo: "Dobles Caballeros 2da/3ra",        categorias: ["caballeros_2da","caballeros_3ra"],  numJugadores: 2, grupo: "dobles_combinados" },
+            { id: 2,  tipo: "Dobles Caballeros 3ra/4ta",        categorias: ["caballeros_3ra","caballeros_4ta"],  numJugadores: 2, grupo: "dobles_combinados" },
+            { id: 17, tipo: "Dobles Caballeros 4ta/5ta",        categorias: ["caballeros_4ta","caballeros_5ta"],  numJugadores: 2, grupo: "dobles_combinados" }
+        ];
+
+        const CATEGORIA_ORDEN = {
+            damas_a: 1, damas_b: 2, damas_c: 3,
+            caballeros_2da: 4, caballeros_3ra: 5, caballeros_4ta: 6, caballeros_5ta: 7
+        };
+        const CATEGORIA_NOMBRES = {
+            damas_a: 'Damas A', damas_b: 'Damas B', damas_c: 'Damas C',
+            caballeros_2da: 'Caballeros 2da', caballeros_3ra: 'Caballeros 3ra',
+            caballeros_4ta: 'Caballeros 4ta', caballeros_5ta: 'Caballeros 5ta'
+        };
+
+        // ── Componente: Barra de efectividad ──
+        function EfectividadBar({ ganados, perdidos, label, size = 'normal' }) {
+            const total = ganados + perdidos;
+            const pG = total > 0 ? (ganados / total) * 100 : 0;
+            const pP = total > 0 ? (perdidos / total) * 100 : 0;
+            const h = size === 'small' ? '18px' : '24px';
+            return (
+                <div style={{ marginBottom: size === 'small' ? '10px' : '14px' }}>
+                    {label && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                            <span style={{ fontSize: '13px', color: '#475569', fontWeight: '600' }}>{label}</span>
+                            <span style={{ fontSize: '12px', color: '#64748b' }}>
+                                {ganados}G – {perdidos}P
+                                {total > 0 && <span style={{ marginLeft: '6px', fontWeight: '700', color: pG >= 50 ? '#059669' : '#dc2626' }}>({pG.toFixed(0)}%)</span>}
+                            </span>
+                        </div>
+                    )}
+                    <div className="efectividad-bar" style={{ height: h }}>
+                        {ganados > 0 && <div className="ef-ganados" style={{ width: `${pG}%` }}>{pG >= 15 ? `${pG.toFixed(0)}%` : ''}</div>}
+                        {perdidos > 0 && <div className="ef-perdidos" style={{ width: `${pP}%` }}>{pP >= 15 ? `${pP.toFixed(0)}%` : ''}</div>}
+                        {total === 0 && <div style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '11px', color: '#94a3b8' }}>Sin partidos</div>}
+                    </div>
+                </div>
+            );
+        }
+
+        // ── Componente: Racha (últimos N partidos) ──
+        function Racha({ historial }) {
+            const ultimos = historial.slice(-10).reverse();
+            if (ultimos.length === 0) return <span style={{ color: '#94a3b8', fontSize: '13px' }}>Sin historial</span>;
+            return (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px' }}>
+                    {ultimos.map((h, i) => (
+                        <span key={i} className="racha-dot"
+                            style={{ background: h.resultado ? '#10b981' : '#ef4444' }}
+                            title={`F${h.fechaNum} vs ${h.rival} — ${h.tipo} — ${h.resultado ? 'Ganó' : 'Perdió'}`}
+                        >
+                            {h.resultado ? 'G' : 'P'}
+                        </span>
+                    ))}
+                </div>
+            );
+        }
+
+        // ── Motor de estadísticas ──
+        function calcularEstadisticas(fechas, resultados, plantel) {
+            const stats = { jugadores: {}, parejas: {} };
+            const todosJugadores = Object.values(plantel).flat();
+
+            todosJugadores.forEach(jugador => {
+                stats.jugadores[jugador.nombre] = {
+                    categoria: jugador.categoria,
+                    capitan: jugador.capitan || false,
+                    singles: { ganados: 0, perdidos: 0 },
+                    dobles:  { ganados: 0, perdidos: 0 },
+                    total:   { ganados: 0, perdidos: 0, historial: [] }
+                };
+            });
+
+            fechas.forEach((fecha, fechaIdx) => {
+                if (!fecha || !fecha.partidos) return;
+                fecha.partidos.forEach(partido => {
+                    if (!partido.jugadores || partido.jugadores.length === 0) return;
+                    const key    = `${fechaIdx}-${partido.id}`;
+                    const ganado = resultados[key] || false;
+                    const esSingle = partido.numJugadores === 1;
+
+                    partido.jugadores.forEach(jugador => {
+                        if (!stats.jugadores[jugador]) return;
+                        const companeros = partido.jugadores.filter(j => j !== jugador);
+                        const compTexto  = companeros.length > 0 ? companeros.join(' / ') : 'Jugó Single';
+
+                        if (esSingle) stats.jugadores[jugador].singles[ganado ? 'ganados' : 'perdidos']++;
+                        else          stats.jugadores[jugador].dobles[ganado ? 'ganados' : 'perdidos']++;
+
+                        stats.jugadores[jugador].total[ganado ? 'ganados' : 'perdidos']++;
+                        stats.jugadores[jugador].total.historial.push({
+                            fechaNum: fecha.numero,
+                            rival: fecha.rival,
+                            tipo: partido.tipo,
+                            companero: compTexto,
+                            resultado: ganado
+                        });
+                    });
+
+                    if (!esSingle && partido.jugadores.length === 2) {
+                        const parejaKey = [...partido.jugadores].sort().join(' - ');
+                        if (!stats.parejas[parejaKey]) stats.parejas[parejaKey] = { ganados: 0, perdidos: 0, fechas: [], tiposJugados: [] };
+                        stats.parejas[parejaKey][ganado ? 'ganados' : 'perdidos']++;
+                        stats.parejas[parejaKey].fechas.push({ fecha: fecha.numero, rival: fecha.rival, tipo: partido.tipo, resultado: ganado });
+                        if (!stats.parejas[parejaKey].tiposJugados.includes(partido.tipo))
+                            stats.parejas[parejaKey].tiposJugados.push(partido.tipo);
+                    }
+                });
+            });
+            return stats;
+        }
+
+        // ── Vista: Ficha Individual ──
+        function TabIndividual({ stats }) {
+            const [jugador, setJugador] = useState('');
+            const [filtroFecha, setFiltroFecha] = useState('');
+
+            const allPlayers = Object.keys(stats.jugadores)
+                .sort((a, b) => {
+                    const oa = CATEGORIA_ORDEN[stats.jugadores[a].categoria] || 99;
+                    const ob = CATEGORIA_ORDEN[stats.jugadores[b].categoria] || 99;
+                    return oa !== ob ? oa - ob : a.localeCompare(b);
+                });
+
+            const data = jugador ? stats.jugadores[jugador] : null;
+            const histFiltrado = data
+                ? (filtroFecha ? data.total.historial.filter(h => String(h.fechaNum) === filtroFecha) : data.total.historial)
+                : [];
+
+            const fechasDisponibles = data
+                ? [...new Set(data.total.historial.map(h => h.fechaNum))].sort()
+                : [];
+
+            const porFechaStats = data ? fechasDisponibles.map(fn => {
+                const partidos = data.total.historial.filter(h => h.fechaNum === fn);
+                const g = partidos.filter(p => p.resultado).length;
+                const p = partidos.filter(p => !p.resultado).length;
+                const rival = partidos[0]?.rival || '';
+                return { fn, g, p, rival };
+            }) : [];
+
+            return (
+                <div>
+                    <div className="filter-panel">
+                        <div className="grid-2" style={{ gap: '16px' }}>
+                            <div className="form-group">
+                                <label>Seleccionar Jugador</label>
+                                <select value={jugador} onChange={e => { setJugador(e.target.value); setFiltroFecha(''); }}>
+                                    <option value="">-- Elegir jugador --</option>
+                                    {allPlayers.map(j => (
+                                        <option key={j} value={j}>
+                                            {j} — {CATEGORIA_NOMBRES[stats.jugadores[j].categoria] || stats.jugadores[j].categoria}
+                                            {stats.jugadores[j].capitan ? ' ⭐' : ''}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            {data && fechasDisponibles.length > 0 && (
+                                <div className="form-group">
+                                    <label>Filtrar por Fecha</label>
+                                    <select value={filtroFecha} onChange={e => setFiltroFecha(e.target.value)}>
+                                        <option value="">Todas las fechas</option>
+                                        {fechasDisponibles.map(fn => {
+                                            const r = data.total.historial.find(h => h.fechaNum === fn)?.rival || '';
+                                            return <option key={fn} value={fn}>Fecha {fn} vs {r}</option>;
+                                        })}
+                                    </select>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {!data && (
+                        <div className="empty-state">
+                            <div className="icon">👤</div>
+                            <p>Seleccioná un jugador para ver su análisis completo</p>
+                        </div>
+                    )}
+
+                    {data && (
+                        <div>
+                            {/* KPI Cards */}
+                            <div className="grid-3" style={{ marginBottom: '20px' }}>
+                                <div className="kpi-box green">
+                                    <div className="kpi-num">{data.total.ganados}</div>
+                                    <div className="kpi-label">Victorias Totales</div>
+                                </div>
+                                <div className="kpi-box red">
+                                    <div className="kpi-num">{data.total.perdidos}</div>
+                                    <div className="kpi-label">Derrotas Totales</div>
+                                </div>
+                                <div className="kpi-box gold">
+                                    <div className="kpi-num">
+                                        {(data.total.ganados + data.total.perdidos) > 0
+                                            ? ((data.total.ganados / (data.total.ganados + data.total.perdidos)) * 100).toFixed(0)
+                                            : 0}%
+                                    </div>
+                                    <div className="kpi-label">Efectividad Global</div>
+                                </div>
+                            </div>
+
+                            {/* Gráficos + Racha */}
+                            <div className="grid-2" style={{ marginBottom: '20px' }}>
+                                <div className="card">
+                                    <div className="card-title">📊 Efectividad por Modalidad</div>
+                                    <EfectividadBar ganados={data.total.ganados}   perdidos={data.total.perdidos}   label="Global" />
+                                    <EfectividadBar ganados={data.dobles.ganados}  perdidos={data.dobles.perdidos}  label="Dobles" />
+                                    <EfectividadBar ganados={data.singles.ganados} perdidos={data.singles.perdidos} label="Singles" />
+                                </div>
+                                <div className="card">
+                                    <div className="card-title">🔄 Racha (últimos 10 partidos)</div>
+                                    <Racha historial={data.total.historial} />
+                                    {data.total.historial.length > 0 && (
+                                        <div style={{ marginTop: '16px' }}>
+                                            <div className="card-title">📅 Por Fecha</div>
+                                            {porFechaStats.map(f => (
+                                                <div key={f.fn} style={{ marginBottom: '8px' }}>
+                                                    <EfectividadBar ganados={f.g} perdidos={f.p} label={`F${f.fn} vs ${f.rival}`} size="small" />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Historial de partidos */}
+                            <div className="card">
+                                <div className="card-title">
+                                    📋 Historial de Partidos
+                                    {filtroFecha && <span style={{ fontWeight: 400, color: '#64748b', fontSize: '13px' }}> — Fecha {filtroFecha}</span>}
+                                </div>
+                                {histFiltrado.length === 0 ? (
+                                    <p style={{ color: '#94a3b8', textAlign: 'center', padding: '20px' }}>Sin partidos para el filtro seleccionado</p>
+                                ) : (
+                                    <div style={{ maxHeight: '320px', overflowY: 'auto' }}>
+                                        {histFiltrado.map((h, i) => (
+                                            <div key={i} className="historial-item">
+                                                <div>
+                                                    <strong style={{ color: '#1e293b', fontSize: '13px' }}>{h.tipo}</strong>
+                                                    <span style={{ fontSize: '12px', color: '#64748b', marginLeft: '8px' }}>F{h.fechaNum} vs {h.rival}</span>
+                                                    <div style={{ fontSize: '12px', color: '#475569', marginTop: '3px' }}>
+                                                        Compañero/a: <strong>{h.companero}</strong>
+                                                    </div>
+                                                </div>
+                                                <span className={h.resultado ? 'badge-win' : 'badge-loss'}>
+                                                    {h.resultado ? '✓ Ganó' : '✗ Perdió'}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        // ── Vista: Análisis de Parejas ──
+        function TabParejas({ stats }) {
+            const [parRama,    setParRama]    = useState('');
+            const [parTipo,    setParTipo]    = useState('');
+            const [parElegida, setParElegida] = useState('');
+
+            const tiposOptions = PARTIDOS
+                .filter(p => {
+                    if (parRama === 'Damas')      return p.grupo === 'damas';
+                    if (parRama === 'Caballeros') return p.grupo === 'dobles_puros' || p.grupo === 'dobles_combinados';
+                    if (parRama === 'Mixtos')     return p.grupo === 'mixtos';
+                    return false;
+                })
+                .map(p => p.tipo);
+
+            const parejasDisponibles = Object.entries(stats.parejas)
+                .filter(([_, d]) => !parTipo || d.tiposJugados.includes(parTipo))
+                .filter(([_, d]) => {
+                    if (!parRama) return true;
+                    return d.tiposJugados.some(t => {
+                        const p = PARTIDOS.find(pp => pp.tipo === t);
+                        if (!p) return false;
+                        if (parRama === 'Damas')      return p.grupo === 'damas';
+                        if (parRama === 'Caballeros') return p.grupo === 'dobles_puros' || p.grupo === 'dobles_combinados';
+                        if (parRama === 'Mixtos')     return p.grupo === 'mixtos';
+                        return false;
+                    });
+                })
+                .sort((a, b) => a[0].localeCompare(b[0]));
+
+            const pData = parElegida ? stats.parejas[parElegida] : null;
+
+            const porTipoStats = pData ? [...new Set(pData.fechas.map(f => f.tipo))].map(t => {
+                const partidos = pData.fechas.filter(f => f.tipo === t);
+                return { tipo: t, g: partidos.filter(f => f.resultado).length, p: partidos.filter(f => !f.resultado).length };
+            }) : [];
+
+            return (
+                <div>
+                    <div className="filter-panel">
+                        <div className="grid-2" style={{ gap: '16px' }}>
+                            <div className="form-group">
+                                <label>Rama</label>
+                                <select value={parRama} onChange={e => { setParRama(e.target.value); setParTipo(''); setParElegida(''); }}>
+                                    <option value="">-- Todas las ramas --</option>
+                                    <option value="Damas">Damas</option>
+                                    <option value="Caballeros">Caballeros</option>
+                                    <option value="Mixtos">Mixtos</option>
+                                </select>
+                            </div>
+                            <div className="form-group">
+                                <label>Tipo de Partido</label>
+                                <select value={parTipo} onChange={e => { setParTipo(e.target.value); setParElegida(''); }} disabled={!parRama}>
+                                    <option value="">Todos los de la rama</option>
+                                    {tiposOptions.map(t => <option key={t} value={t}>{t}</option>)}
+                                </select>
+                            </div>
+                            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                                <label>Elegir Pareja</label>
+                                <select value={parElegida} onChange={e => setParElegida(e.target.value)}>
+                                    <option value="">-- Seleccionar pareja --</option>
+                                    {parejasDisponibles.map(([p, d]) => {
+                                        const total = d.ganados + d.perdidos;
+                                        const pct = total > 0 ? ((d.ganados / total) * 100).toFixed(0) : 0;
+                                        return <option key={p} value={p}>{p} ({d.ganados}G-{d.perdidos}P · {pct}%)</option>;
+                                    })}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    {!pData && (
+                        <div className="empty-state">
+                            <div className="icon">👥</div>
+                            <p>Seleccioná una pareja para ver su análisis</p>
+                        </div>
+                    )}
+
+                    {pData && (
+                        <div>
+                            <div className="grid-3" style={{ marginBottom: '20px' }}>
+                                <div className="kpi-box green">
+                                    <div className="kpi-num">{pData.ganados}</div>
+                                    <div className="kpi-label">Victorias</div>
+                                </div>
+                                <div className="kpi-box red">
+                                    <div className="kpi-num">{pData.perdidos}</div>
+                                    <div className="kpi-label">Derrotas</div>
+                                </div>
+                                <div className="kpi-box gold">
+                                    <div className="kpi-num">
+                                        {(pData.ganados + pData.perdidos) > 0
+                                            ? ((pData.ganados / (pData.ganados + pData.perdidos)) * 100).toFixed(0)
+                                            : 0}%
+                                    </div>
+                                    <div className="kpi-label">Efectividad</div>
+                                </div>
+                            </div>
+
+                            <div className="grid-2" style={{ marginBottom: '20px' }}>
+                                <div className="card">
+                                    <div className="card-title">📊 Efectividad General</div>
+                                    <EfectividadBar ganados={pData.ganados} perdidos={pData.perdidos} label="Esta pareja" />
+                                    <div style={{ marginTop: '16px' }}>
+                                        <div className="card-title">Por Tipo de Partido</div>
+                                        {porTipoStats.map(t => (
+                                            <EfectividadBar key={t.tipo} ganados={t.g} perdidos={t.p} label={t.tipo} size="small" />
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="card">
+                                    <div className="card-title">📋 Historial de Partidos</div>
+                                    <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                                        {pData.fechas.map((h, i) => (
+                                            <div key={i} className="historial-item">
+                                                <div>
+                                                    <strong style={{ fontSize: '13px', color: '#1e293b' }}>{h.tipo}</strong>
+                                                    <div style={{ fontSize: '12px', color: '#64748b', marginTop: '3px' }}>F{h.fecha} vs {h.rival}</div>
+                                                </div>
+                                                <span className={h.resultado ? 'badge-win' : 'badge-loss'}>
+                                                    {h.resultado ? '✓ Ganó' : '✗ Perdió'}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        // ── Vista: Rankings ──
+        function TabRanking({ stats }) {
+            const RankItem = ({ idx, nombre, main, sub, pct, pctColor }) => (
+                <div className={`rank-item ${idx === 0 ? 'top-1' : idx === 1 ? 'top-2' : idx === 2 ? 'top-3' : ''}`}>
+                    <span className="rank-num" style={{ color: idx === 0 ? '#d4af37' : idx === 1 ? '#94a3b8' : idx === 2 ? '#b45309' : '#94a3b8' }}>
+                        {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`}
+                    </span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                        <strong style={{ color: '#0f172a', display: 'block', fontSize: '14px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nombre}</strong>
+                        <span style={{ fontSize: '12px', color: '#64748b' }}>{sub}</span>
+                    </div>
+                    <span style={{ background: pctColor || '#10b981', color: 'white', padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: '700', whiteSpace: 'nowrap' }}>
+                        {main}
+                    </span>
+                </div>
+            );
+
+            const jugadores = Object.entries(stats.jugadores);
+            const topTotal   = [...jugadores].filter(j => (j[1].total.ganados + j[1].total.perdidos) > 0).sort((a, b) => b[1].total.ganados - a[1].total.ganados).slice(0, 10);
+            const topPct     = [...jugadores].filter(j => (j[1].total.ganados + j[1].total.perdidos) >= 3).sort((a, b) => {
+                const pctA = a[1].total.ganados / (a[1].total.ganados + a[1].total.perdidos);
+                const pctB = b[1].total.ganados / (b[1].total.ganados + b[1].total.perdidos);
+                return pctB - pctA;
+            }).slice(0, 10);
+            const topSingles = [...jugadores].filter(j => (j[1].singles.ganados + j[1].singles.perdidos) > 0).sort((a, b) => b[1].singles.ganados - a[1].singles.ganados).slice(0, 10);
+            const topParejas = Object.entries(stats.parejas).sort((a, b) => b[1].ganados - a[1].ganados).slice(0, 10);
+            const masActivos = [...jugadores].sort((a, b) => (b[1].total.ganados + b[1].total.perdidos) - (a[1].total.ganados + a[1].total.perdidos)).slice(0, 10);
+
+            return (
+                <div>
+                    <div className="grid-2">
+                        <div className="card">
+                            <div className="card-title">🏆 Más Victorias Totales</div>
+                            {topTotal.map(([n, d], i) => <RankItem key={n} idx={i} nombre={n} sub={`${d.total.ganados}G - ${d.total.perdidos}P`} main={`${d.total.ganados} Victorias`} />)}
+                        </div>
+                        <div className="card">
+                            <div className="card-title">📈 Mayor % Efectividad <span style={{ fontSize: '11px', fontWeight: 400, color: '#94a3b8' }}>(mín. 3 partidos)</span></div>
+                            {topPct.map(([n, d], i) => {
+                                const total = d.total.ganados + d.total.perdidos;
+                                const pct = ((d.total.ganados / total) * 100).toFixed(1);
+                                const color = pct >= 70 ? '#059669' : pct >= 50 ? '#d97706' : '#dc2626';
+                                return <RankItem key={n} idx={i} nombre={n} sub={`${d.total.ganados}G - ${d.total.perdidos}P · ${total} partidos`} main={`${pct}%`} pctColor={color} />;
+                            })}
+                        </div>
+                        <div className="card">
+                            <div className="card-title">🎾 Mejores Singlistas</div>
+                            {topSingles.length === 0
+                                ? <p style={{ color: '#94a3b8', fontSize: '13px' }}>Sin singles registrados aún</p>
+                                : topSingles.map(([n, d], i) => {
+                                    const total = d.singles.ganados + d.singles.perdidos;
+                                    const pct = total > 0 ? ((d.singles.ganados / total) * 100).toFixed(0) : 0;
+                                    return <RankItem key={n} idx={i} nombre={n} sub={`${d.singles.ganados}G - ${d.singles.perdidos}P`} main={`${pct}% en singles`} />;
+                                })
+                            }
+                        </div>
+                        <div className="card">
+                            <div className="card-title">👥 Mejores Parejas</div>
+                            {topParejas.map(([p, d], i) => {
+                                const total = d.ganados + d.perdidos;
+                                const pct = total > 0 ? ((d.ganados / total) * 100).toFixed(0) : 0;
+                                return <RankItem key={p} idx={i} nombre={p} sub={`${d.ganados}G - ${d.perdidos}P`} main={`${pct}%`} />;
+                            })}
+                        </div>
+                        <div className="card" style={{ gridColumn: '1 / -1' }}>
+                            <div className="card-title">⚡ Jugadores más Activos</div>
+                            <div className="grid-2">
+                                {masActivos.map(([n, d], i) => {
+                                    const total = d.total.ganados + d.total.perdidos;
+                                    return <RankItem key={n} idx={i} nombre={n} sub={CATEGORIA_NOMBRES[d.categoria] || d.categoria} main={`${total} partidos`} pctColor="#6366f1" />;
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // ── Vista: Tabla General ──
+        function TabGeneral({ stats }) {
+            const [sortBy, setSortBy] = useState('ganados');
+
+            const ORDEN_CATS = Object.keys(CATEGORIA_ORDEN).sort((a, b) => CATEGORIA_ORDEN[a] - CATEGORIA_ORDEN[b]);
+
+            const jugadoresPorCat = {};
+            ORDEN_CATS.forEach(cat => { jugadoresPorCat[cat] = []; });
+            Object.entries(stats.jugadores).forEach(([nombre, data]) => {
+                if (jugadoresPorCat[data.categoria]) jugadoresPorCat[data.categoria].push([nombre, data]);
+            });
+            ORDEN_CATS.forEach(cat => {
+                jugadoresPorCat[cat].sort((a, b) => {
+                    if (sortBy === 'ganados')  return b[1].total.ganados - a[1].total.ganados;
+                    if (sortBy === 'efectividad') {
+                        const totA = a[1].total.ganados + a[1].total.perdidos;
+                        const totB = b[1].total.ganados + b[1].total.perdidos;
+                        const pA = totA > 0 ? a[1].total.ganados / totA : 0;
+                        const pB = totB > 0 ? b[1].total.ganados / totB : 0;
+                        return pB - pA;
+                    }
+                    return a[0].localeCompare(b[0]);
+                });
+            });
+
+            return (
+                <div>
+                    <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <span style={{ fontWeight: '600', color: '#475569', fontSize: '14px' }}>Ordenar por:</span>
+                        {[['ganados', 'Victorias'], ['efectividad', '% Efectividad'], ['nombre', 'Nombre']].map(([v, l]) => (
+                            <button key={v} onClick={() => setSortBy(v)}
+                                style={{
+                                    padding: '6px 14px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: '600',
+                                    background: sortBy === v ? '#1e3c72' : '#f1f5f9',
+                                    color: sortBy === v ? 'white' : '#475569',
+                                    transition: '0.2s'
+                                }}>
+                                {l}
+                            </button>
+                        ))}
+                    </div>
+
+                    <div className="table-container">
+                        <table className="stats-table">
+                            <thead>
+                                <tr>
+                                    <th>Jugador/a</th>
+                                    <th>Categoría</th>
+                                    <th>Singles (G-P)</th>
+                                    <th>Dobles (G-P)</th>
+                                    <th>Total (G-P)</th>
+                                    <th>Jugados</th>
+                                    <th>% Global</th>
+                                    <th>Racha</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {ORDEN_CATS.map(cat => {
+                                    const jugadores = jugadoresPorCat[cat];
+                                    if (!jugadores || jugadores.length === 0) return null;
+                                    return [
+                                        <tr key={`cat-${cat}`} className="cat-header">
+                                            <td colSpan={8}>{CATEGORIA_NOMBRES[cat] || cat}</td>
+                                        </tr>,
+                                        ...jugadores.map(([nombre, data]) => {
+                                            const total = data.total.ganados + data.total.perdidos;
+                                            const pct = total > 0 ? ((data.total.ganados / total) * 100).toFixed(1) : '0.0';
+                                            const pctNum = parseFloat(pct);
+                                            const pctColor = pctNum >= 60 ? '#059669' : pctNum >= 40 ? '#d97706' : total === 0 ? '#94a3b8' : '#dc2626';
+                                            return (
+                                                <tr key={nombre}>
+                                                    <td>
+                                                        <strong>{nombre}</strong>
+                                                        {data.capitan && <span style={{ background: '#f59e0b', color: 'white', fontSize: '10px', padding: '1px 6px', borderRadius: '4px', marginLeft: '6px' }}>CAP</span>}
+                                                    </td>
+                                                    <td><span className="badge-cat">{CATEGORIA_NOMBRES[data.categoria] || data.categoria}</span></td>
+                                                    <td>{data.singles.ganados} – {data.singles.perdidos}</td>
+                                                    <td>{data.dobles.ganados} – {data.dobles.perdidos}</td>
+                                                    <td><strong>{data.total.ganados} – {data.total.perdidos}</strong></td>
+                                                    <td>{total}</td>
+                                                    <td><strong style={{ color: pctColor }}>{pct}%</strong></td>
+                                                    <td>
+                                                        <div style={{ display: 'flex', gap: '2px' }}>
+                                                            {data.total.historial.slice(-5).reverse().map((h, i) => (
+                                                                <span key={i} className="racha-dot" style={{ background: h.resultado ? '#10b981' : '#ef4444', width: '16px', height: '16px', fontSize: '9px' }}>
+                                                                    {h.resultado ? 'G' : 'P'}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })
+                                    ];
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            );
+        }
+
+        // ── App Principal ──
+        function App() {
+            const [subTab,    setSubTab]    = useState('individual');
+            const [fechas,    setFechas]    = useState([]);
+            const [resultados, setResultados] = useState({});
+            const [plantel,   setPlantel]   = useState(null);   // viene de config.plantel en Firebase
+            const [equipoNombre, setEquipoNombre] = useState('Mi Equipo');
+            const [loadStatus, setLoadStatus] = useState('loading'); // 'loading' | 'ready' | 'error'
+            const [lastSync,   setLastSync]  = useState(null);
+
+            useEffect(() => {
+                const cargarTodo = async () => {
+                    try {
+                        // 1. Intentar cache local primero (respuesta rápida)
+                        const configLocal = localStorage.getItem(`${ID_PROYECTO}_config`);
+                        const datosLocal  = localStorage.getItem(`${ID_PROYECTO}_datos`);
+
+                        if (configLocal) {
+                            const c = JSON.parse(configLocal);
+                            if (c.plantel)       setPlantel(c.plantel);
+                            if (c.nombreEquipo)  setEquipoNombre(c.nombreEquipo);
+                        }
+                        if (datosLocal) {
+                            const d = JSON.parse(datosLocal);
+                            setFechas(d.fechas || []);
+                            setResultados(d.resultados || {});
+                            if (configLocal) setLoadStatus('ready');
+                        }
+
+                        // 2. Firebase como fuente de verdad
+                        const snapConfig = await database.ref(`${FIREBASE_PATH}/config`).once('value');
+                        const snapDatos  = await database.ref(`${FIREBASE_PATH}/datos`).once('value');
+                        const config = snapConfig.val();
+                        const datos  = snapDatos.val();
+
+                        if (config) {
+                            if (config.plantel)      setPlantel(config.plantel);
+                            if (config.nombreEquipo) setEquipoNombre(config.nombreEquipo);
+                            localStorage.setItem(`${ID_PROYECTO}_config`, JSON.stringify(config));
+                        }
+                        if (datos) {
+                            setFechas(datos.fechas || []);
+                            setResultados(datos.resultados || {});
+                            setLastSync(datos.ultimaActualizacion || null);
+                            localStorage.setItem(`${ID_PROYECTO}_datos`, JSON.stringify(datos));
+                        }
+
+                        setLoadStatus('ready');
+                    } catch (e) {
+                        console.error('Error al cargar desde Firebase:', e);
+                        setLoadStatus(plantel ? 'ready' : 'error');
+                    }
+                };
+
+                cargarTodo();
+
+                // Escuchar cambios en tiempo real en los datos del torneo
+                const ref = database.ref(`${FIREBASE_PATH}/datos`);
+                ref.on('value', snapshot => {
+                    const datos = snapshot.val();
+                    if (datos) {
+                        setFechas(datos.fechas || []);
+                        setResultados(datos.resultados || {});
+                        setLastSync(datos.ultimaActualizacion || null);
+                    }
+                });
+                return () => ref.off('value');
+            }, []);
+
+            // Exportación a CSV
+            const exportarCSV = () => {
+                if (!plantel) return;
+                const s = calcularEstadisticas(fechas, resultados, plantel);
+                let csv = `\uFEFFESTADISTICAS INDIVIDUALES — ${equipoNombre}\nCategoria;Jugador;Singles G;Singles P;Dobles G;Dobles P;Total G;Total P;% Victorias\n`;
+                Object.entries(s.jugadores).forEach(([nombre, data]) => {
+                    const total = data.total.ganados + data.total.perdidos;
+                    const pct = total > 0 ? ((data.total.ganados / total) * 100).toFixed(1).replace('.', ',') : '0,0';
+                    csv += `${CATEGORIA_NOMBRES[data.categoria] || data.categoria};${nombre};${data.singles.ganados};${data.singles.perdidos};${data.dobles.ganados};${data.dobles.perdidos};${data.total.ganados};${data.total.perdidos};${pct}%\n`;
+                });
+                csv += `\n\nESTADISTICAS DE PAREJAS\nPareja;Ganados;Perdidos;% Victorias;Partidos Jugados\n`;
+                Object.entries(s.parejas).forEach(([pareja, data]) => {
+                    const total = data.ganados + data.perdidos;
+                    const pct = total > 0 ? ((data.ganados / total) * 100).toFixed(1).replace('.', ',') : '0,0';
+                    const detalle = data.fechas.map(f => `F${f.fecha} vs ${f.rival} (${f.resultado ? 'G' : 'P'})`).join(' | ');
+                    csv += `${pareja};${data.ganados};${data.perdidos};${pct}%;${detalle}\n`;
+                });
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `${equipoNombre}_Estadisticas_${new Date().toISOString().split('T')[0]}.csv`;
+                document.body.appendChild(link); link.click(); document.body.removeChild(link);
+            };
+
+            // ── Estados de carga ──
+            if (loadStatus === 'loading') {
+                return (
+                    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #1a1a1a 0%, #2d2416 100%)' }}>
+                        <div style={{ fontSize: '48px', marginBottom: '16px' }}>🎾</div>
+                        <p style={{ color: '#c5a572', fontSize: '18px', fontWeight: '600' }}>Cargando estadísticas...</p>
+                    </div>
+                );
+            }
+
+            if (loadStatus === 'error' || !plantel) {
+                return (
+                    <div className="container" style={{ padding: '40px', textAlign: 'center' }}>
+                        <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
+                        <h2 style={{ color: '#991b1b', marginBottom: '12px' }}>Sin datos disponibles</h2>
+                        <p style={{ color: '#64748b', marginBottom: '24px' }}>
+                            No se encontraron datos para el proyecto <strong>{ID_PROYECTO}</strong>.<br />
+                            Completá el setup inicial en la aplicación principal.
+                        </p>
+                        <button className="btn-volver" onClick={() => window.location.href = 'index.html'}>
+                            ⬅️ Volver a la App
+                        </button>
+                    </div>
+                );
+            }
+
+            const stats = calcularEstadisticas(fechas, resultados, plantel);
+            const totalPartidos = Object.values(stats.jugadores).reduce((s, j) => s + j.total.ganados + j.total.perdidos, 0);
+            const totalGanados  = Object.values(stats.jugadores).reduce((s, j) => s + j.total.ganados, 0);
+
+            const TABS = [
+                { id: 'individual', label: '👤 Ficha Individual' },
+                { id: 'parejas',    label: '👥 Parejas' },
+                { id: 'ranking',    label: '🏆 Rankings' },
+                { id: 'general',    label: '📋 Tabla General' },
+            ];
+
+            return (
+                <div className="container">
+                    {/* HEADER */}
+                    <div className="page-header">
+                        <div className="header-title">
+                            <img src="GOAT.jpeg" alt="Logo" onError={e => { e.target.style.display='none'; }} />
+                            <div>
+                                <h1>{equipoNombre}</h1>
+                                <p>Análisis de Rendimiento · {fechas.filter(Boolean).length} fechas jugadas</p>
+                            </div>
+                        </div>
+                        <div className="header-actions">
+                            <button className="btn-excel" onClick={exportarCSV}>📊 Descargar CSV</button>
+                            <button className="btn-volver" onClick={() => window.location.href = 'index.html'}>⬅️ Volver</button>
+                        </div>
+                    </div>
+
+                    {/* SYNC BAR */}
+                    <div className="sync-bar">
+                        <span style={{ color: '#10b981' }}>●</span>
+                        <span>Conectado a Firebase · Proyecto: <strong>{ID_PROYECTO}</strong></span>
+                        {lastSync && <span style={{ marginLeft: 'auto', fontSize: '11px' }}>Último sync: {new Date(lastSync).toLocaleString('es-AR')}</span>}
+                    </div>
+
+                    {/* TABS */}
+                    <div className="sub-tabs">
+                        {TABS.map(t => (
+                            <button key={t.id} className={`sub-tab ${subTab === t.id ? 'active' : ''}`} onClick={() => setSubTab(t.id)}>
+                                {t.label}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* CONTENT */}
+                    <div className="content">
+                        {subTab === 'individual' && <TabIndividual stats={stats} />}
+                        {subTab === 'parejas'    && <TabParejas    stats={stats} />}
+                        {subTab === 'ranking'    && <TabRanking    stats={stats} />}
+                        {subTab === 'general'    && <TabGeneral    stats={stats} />}
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
