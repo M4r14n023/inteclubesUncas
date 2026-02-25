@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#1a1a1a">
-    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Mi Equipo">
     <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png">
@@ -226,19 +226,26 @@
 <body>
     <div id="root"></div>
 
-<script type="module">
-    import { 
+<script src="js/constants.js"></script>
+<script src="js/logic.js"></script>
+<script src="js/plantel.js"></script>
+
+<script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    // 3. Tomamos las variables del objeto global window
+    const { 
         ID_PROYECTO, 
         CATEGORIAS_DISPONIBLES, 
         ORDEN_CATS, 
         NOMBRES_CATS, 
-        MAX_POR_CATEGORIA,
+        MAX_POR_CATEGORIA, 
         EQUIPOS_POR_DEFECTO 
-    } from './js/constants.js';
-    import { calcularTablaZona } from './js/logic.js';
-    import { renderPlantelSlots } from './js/plantel.js';
+    } = window.AppConstants;
 
-    const { useState, useEffect, useRef } = React;
+    const { calcularTablaZona } = window.AppLogic;
+    const { renderPlantelSlots } = window.AppPlantel;
+
         // Configuración de Firebase - Hub Universitario
         const firebaseConfig = {
             apiKey: "AIzaSyDWut5pII90tdvaB_AwkvdQ6Oq3TgM5wKY",
@@ -260,7 +267,7 @@
         //  Ejemplo: 'club_atletico_norte', 'tenis_del_sur_2025', etc.
         //  Este valor define el nodo aislado en Firebase para tus datos.
         // ============================================================
-        const ID_PROYECTO = 'nombre_del_equipo';
+        //const ID_PROYECTO = 'nombre_del_equipo';
         // ============================================================
 
         const database = firebase.database();
@@ -324,20 +331,6 @@
         ];
 
         // Plantel cargado dinámicamente desde Firebase config.plantel — no hay datos hardcodeados
-
-        const EQUIPOS_POR_DEFECTO = [ 'Uncas', 'El Rojo', 'Ferro', 'Tercer Tiempo', 'Tres Arroyos', 'Head', 'La Cardoneta', 'La Sede', 'Tiro Federal' ];
-
-        const CATEGORIAS_DISPONIBLES = [
-            { value: 'caballeros_2da', label: 'Caballeros 2da', max: 5 },
-            { value: 'caballeros_3ra', label: 'Caballeros 3ra', max: 5 },
-            { value: 'caballeros_4ta', label: 'Caballeros 4ta', max: 5 },
-            { value: 'caballeros_5ta', label: 'Caballeros 5ta', max: 5 },
-            { value: 'damas_a',        label: 'Damas A',        max: 3 },
-            { value: 'damas_b',        label: 'Damas B',        max: 4 },
-            { value: 'damas_c',        label: 'Damas C',        max: 4 },
-        ];
-        const MAX_POR_CATEGORIA = Object.fromEntries(CATEGORIAS_DISPONIBLES.map(c => [c.value, c.max]));
-
         // ============================================================
         //  🧙 SETUP WIZARD — Se muestra cuando el equipo es nuevo
         // ============================================================
