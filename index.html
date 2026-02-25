@@ -7,13 +7,15 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Mi Equipo">
-    <link rel="apple-touch-icon" href="icono.png">
-    <link rel="apple-touch-icon" sizes="152x152" href="icono.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="icono.png">
-    <link rel="apple-touch-icon" sizes="167x167" href="icono.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="icon-192.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="icon-192.png">
+    <link rel="apple-touch-icon" sizes="167x167" href="icon-192.png">
     <link rel="manifest" href="manifest.json">
     <title>Torneo - Interclubes</title>
-    <link rel="icon" type="image/jpeg" href="icono.png">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
@@ -468,7 +470,7 @@
                             <div>
                                 <h2 style={{color:'#203a43', marginBottom:'6px', fontSize:'20px'}}>Paso 1 — Tu Equipo</h2>
                                 <p style={{color:'#64748b', fontSize:'14px', marginBottom:'24px'}}>
-                                    Este nombre se mostrará en toda la aplicación.
+                                    Este nombre se implementará en toda la aplicación.
                                 </p>
                                 <div className="form-group">
                                     <label>Nombre del Equipo Principal *</label>
@@ -657,7 +659,7 @@
             return (
                 <div className="container" style={{maxWidth: '100%', height: '100vh', display: 'flex', flexDirection: 'column', background: 'linear-gradient(135deg, #1a1a1a 0%, #2d2416 100%)', alignItems: 'center', justifyContent: 'center'}}>
                     <div className="login-container">
-                        <img src="GOAT.jpeg" alt="Logo" style={{width: '100px', marginBottom: '20px'}} />
+                        <img src="icon-192.png" alt="Logo" style={{width: '100px', marginBottom: '20px'}} />
                         <h1 style={{color: '#1e3c72', marginBottom: '10px'}}>Bienvenido a {nombreEquipo}</h1>
                         <p style={{color: '#666', marginBottom: '30px'}}>Seleccioná tu perfil para ingresar</p>
 
@@ -1001,7 +1003,7 @@
             return (
                 <div className="container">
                     <div className="header">
-                        <img src="GOAT.jpeg" alt="Logo" />
+                        <img src="icon-192.png" alt="Logo" />
                         <div className="header-text">
                             <h1>{config ? config.nombreEquipo : 'Mi Equipo'} - {config ? (config.descripcion || 'Interclubes') : 'Interclubes'}</h1>
                             <p>Sistema completo de seguimiento y armado de fechas</p>

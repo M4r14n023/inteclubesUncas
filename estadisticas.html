@@ -7,7 +7,9 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Análisis de Rendimiento</title>
-    <link rel="icon" type="image/jpeg" href="GOAT.jpeg">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
@@ -1016,7 +1018,7 @@
                     {/* HEADER */}
                     <div className="page-header">
                         <div className="header-title">
-                            <img src="GOAT.jpeg" alt="Logo" onError={e => { e.target.style.display='none'; }} />
+                            <img src="icon-192.png" alt="Logo" onError={e => { e.target.style.display='none'; }} />
                             <div>
                                 <h1>{equipoNombre}</h1>
                                 <p>Análisis de Rendimiento · {fechas.filter(Boolean).length} fechas jugadas</p>
