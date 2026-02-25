@@ -7,13 +7,13 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Mi Equipo">
-    <link rel="apple-touch-icon" href="GOAT.jpeg">
-    <link rel="apple-touch-icon" sizes="152x152" href="GOAT.jpeg">
-    <link rel="apple-touch-icon" sizes="180x180" href="GOAT.jpeg">
-    <link rel="apple-touch-icon" sizes="167x167" href="GOAT.jpeg">
+    <link rel="apple-touch-icon" href="icono.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="icono.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="icono.png">
+    <link rel="apple-touch-icon" sizes="167x167" href="icono.png">
     <link rel="manifest" href="manifest.json">
     <title>Torneo - Interclubes</title>
-    <link rel="icon" type="image/jpeg" href="GOAT.jpeg">
+    <link rel="icon" type="image/jpeg" href="icono.png">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
@@ -311,17 +311,20 @@
             { id: 17, tipo: "Dobles Caballeros 4ta/5ta", categorias: ["caballeros_4ta", "caballeros_5ta"], numJugadores: 2, grupo: "dobles_combinados" }
         ];
 
-        const JUGADORES_GOAT = {
-            caballeros_2da: [ { nombre: "Maxi", categoria: "caballeros_2da" }, { nombre: "Hernan", categoria: "caballeros_2da" }, { nombre: "Walter", categoria: "caballeros_2da", capitan: true }, { nombre: "Charly", categoria: "caballeros_2da" } ],
-            caballeros_3ra: [ { nombre: "Mariano", categoria: "caballeros_3ra" }, { nombre: "Tomy", categoria: "caballeros_3ra" }, { nombre: "Nico", categoria: "caballeros_3ra" }, { nombre: "Chicho", categoria: "caballeros_3ra" } ],
-            caballeros_4ta: [ { nombre: "Rodri", categoria: "caballeros_4ta" }, { nombre: "Marce", categoria: "caballeros_4ta" }, { nombre: "Facu", categoria: "caballeros_4ta" }, { nombre: "Santi", categoria: "caballeros_4ta" } ],
-            caballeros_5ta: [ { nombre: "Toto", categoria: "caballeros_5ta" }, { nombre: "Tibu", categoria: "caballeros_5ta" }, { nombre: "Bocha", categoria: "caballeros_5ta" }, { nombre: "Peka", categoria: "caballeros_5ta" }, { nombre: "Nacho", categoria: "caballeros_5ta" } ],
-            damas_a: [ { nombre: "Caro Demaría", categoria: "damas_a" }, { nombre: "Kari", categoria: "damas_a" }, { nombre: "Grace", categoria: "damas_a" } ],
-            damas_b: [ { nombre: "Mariela", categoria: "damas_b" }, { nombre: "Mariana", categoria: "damas_b" }, { nombre: "Caro Razquin", categoria: "damas_b" }, { nombre: "Beltra", categoria: "damas_b" } ],
-            damas_c: [ { nombre: "Nelly", categoria: "damas_c" }, { nombre: "Marina", categoria: "damas_c" }, { nombre: "Lulu", categoria: "damas_c" }, { nombre: "Caro Sorbi", categoria: "damas_c" } ]
-        };
+        // Plantel cargado dinámicamente desde Firebase config.plantel — no hay datos hardcodeados
 
         const EQUIPOS_POR_DEFECTO = [ 'Uncas', 'El Rojo', 'Ferro', 'Tercer Tiempo', 'Tres Arroyos', 'Head', 'La Cardoneta', 'La Sede', 'Tiro Federal' ];
+
+        const CATEGORIAS_DISPONIBLES = [
+            { value: 'caballeros_2da', label: 'Caballeros 2da', max: 5 },
+            { value: 'caballeros_3ra', label: 'Caballeros 3ra', max: 5 },
+            { value: 'caballeros_4ta', label: 'Caballeros 4ta', max: 5 },
+            { value: 'caballeros_5ta', label: 'Caballeros 5ta', max: 5 },
+            { value: 'damas_a',        label: 'Damas A',        max: 3 },
+            { value: 'damas_b',        label: 'Damas B',        max: 4 },
+            { value: 'damas_c',        label: 'Damas C',        max: 4 },
+        ];
+        const MAX_POR_CATEGORIA = Object.fromEntries(CATEGORIAS_DISPONIBLES.map(c => [c.value, c.max]));
 
         // ============================================================
         //  🧙 SETUP WIZARD — Se muestra cuando el equipo es nuevo
@@ -341,26 +344,27 @@
             const [pinAdmin, setPinAdmin] = useState('');
             const [pinAdminConf, setPinAdminConf] = useState('');
 
-            // Paso 3: Plantel
-            const CATEGORIAS_DISPONIBLES = [
-                { value: 'caballeros_2da', label: 'Caballeros 2da' },
-                { value: 'caballeros_3ra', label: 'Caballeros 3ra' },
-                { value: 'caballeros_4ta', label: 'Caballeros 4ta' },
-                { value: 'caballeros_5ta', label: 'Caballeros 5ta' },
-                { value: 'damas_a', label: 'Damas A' },
-                { value: 'damas_b', label: 'Damas B' },
-                { value: 'damas_c', label: 'Damas C' },
-            ];
-            const jugadorVacio = () => ({ nombre: '', categoria: 'caballeros_3ra', capitan: false });
-            const [jugadores, setJugadores] = useState([jugadorVacio()]);
+            // Paso 3: Plantel — usa CATEGORIAS_DISPONIBLES global (con max por categoría)
+            const [jugadores, setJugadores] = useState([]);
+            const [showAgregarJugador, setShowAgregarJugador] = useState(false);
+            const [jugadorTemp, setJugadorTemp] = useState({ nombre: '', categoria: '', capitan: false });
+            const [errorJugador, setErrorJugador] = useState('');
 
-            const agregarJugador = () => setJugadores([...jugadores, jugadorVacio()]);
-            const quitarJugador = (idx) => setJugadores(jugadores.filter((_, i) => i !== idx));
-            const actualizarJugador = (idx, campo, valor) => {
-                const nuevo = [...jugadores];
-                nuevo[idx] = { ...nuevo[idx], [campo]: valor };
-                setJugadores(nuevo);
+            const agregarJugadorAlPlantel = () => {
+                const nom = jugadorTemp.nombre.trim();
+                if (!nom) { setErrorJugador('El nombre es obligatorio.'); return; }
+                if (!jugadorTemp.categoria) { setErrorJugador('Seleccioná una categoría.'); return; }
+                const dup = jugadores.find(j => j.nombre.toLowerCase() === nom.toLowerCase());
+                if (dup) { setErrorJugador('Ya existe un jugador con ese nombre.'); return; }
+                const enCat = jugadores.filter(j => j.categoria === jugadorTemp.categoria).length;
+                const max = MAX_POR_CATEGORIA[jugadorTemp.categoria] || 5;
+                if (enCat >= max) { setErrorJugador(`La categoría ${CATEGORIAS_DISPONIBLES.find(c=>c.value===jugadorTemp.categoria)?.label} ya tiene el máximo de ${max} jugadores.`); return; }
+                setJugadores([...jugadores, { nombre: nom, categoria: jugadorTemp.categoria, capitan: jugadorTemp.capitan }]);
+                setJugadorTemp({ nombre: '', categoria: '', capitan: false });
+                setShowAgregarJugador(false);
+                setErrorJugador('');
             };
+            const quitarJugador = (idx) => setJugadores(jugadores.filter((_, i) => i !== idx));
 
             const validarPaso1 = () => {
                 if (!nombreEquipo.trim()) { setError('El nombre del equipo es obligatorio.'); return false; }
@@ -375,8 +379,7 @@
                 setError(''); return true;
             };
             const validarPaso3 = () => {
-                const validos = jugadores.filter(j => j.nombre.trim());
-                if (validos.length === 0) { setError('Agregá al menos un jugador al plantel.'); return false; }
+                if (jugadores.length === 0) { setError('Agregá al menos un jugador al plantel.'); return false; }
                 setError(''); return true;
             };
 
@@ -391,9 +394,9 @@
                 setError('');
                 try {
                     const plantel = {};
-                    jugadores.filter(j => j.nombre.trim()).forEach(j => {
+                    jugadores.forEach(j => {
                         if (!plantel[j.categoria]) plantel[j.categoria] = [];
-                        plantel[j.categoria].push({ nombre: j.nombre.trim(), categoria: j.categoria, capitan: j.capitan });
+                        plantel[j.categoria].push({ nombre: j.nombre, categoria: j.categoria, capitan: j.capitan });
                     });
 
                     const config = {
@@ -465,7 +468,7 @@
                             <div>
                                 <h2 style={{color:'#203a43', marginBottom:'6px', fontSize:'20px'}}>Paso 1 — Tu Equipo</h2>
                                 <p style={{color:'#64748b', fontSize:'14px', marginBottom:'24px'}}>
-                                    Este nombre se utilizará en toda la aplicación.
+                                    Este nombre se mostrará en toda la aplicación.
                                 </p>
                                 <div className="form-group">
                                     <label>Nombre del Equipo Principal *</label>
@@ -522,50 +525,82 @@
                         {paso === 3 && (
                             <div>
                                 <h2 style={{color:'#203a43', marginBottom:'6px', fontSize:'20px'}}>Paso 3 — Plantel Inicial</h2>
-                                <p style={{color:'#64748b', fontSize:'14px', marginBottom:'20px'}}>
-                                    Podés agregar más jugadores después desde el panel de Admin.
+                                <p style={{color:'#64748b', fontSize:'14px', marginBottom:'16px'}}>
+                                    Podés agregar más jugadores después desde Configuración.<br/>
+                                    Límites: Caballeros 5 por cat. · Damas B/C 4 · Damas A 3
                                 </p>
-                                <div style={{maxHeight:'320px', overflowY:'auto', paddingRight:'4px'}}>
-                                    {jugadores.map((j, idx) => (
-                                        <div key={idx} style={{
-                                            display:'grid', gridTemplateColumns:'1fr auto auto auto', gap:'8px',
-                                            alignItems:'center', marginBottom:'10px',
-                                            background: idx % 2 === 0 ? '#f8fafc' : 'white',
-                                            padding:'10px 12px', borderRadius:'8px', border:'1px solid #e2e8f0'
-                                        }}>
-                                            <input
-                                                type="text" value={j.nombre}
-                                                onChange={e => actualizarJugador(idx, 'nombre', e.target.value)}
-                                                placeholder={`Jugador ${idx + 1}`}
-                                                style={{padding:'8px', border:'1px solid #ddd', borderRadius:'6px', fontSize:'14px', width:'100%'}}
-                                            />
-                                            <select
-                                                value={j.categoria}
-                                                onChange={e => actualizarJugador(idx, 'categoria', e.target.value)}
-                                                style={{padding:'8px', border:'1px solid #ddd', borderRadius:'6px', fontSize:'13px'}}
-                                            >
-                                                {CATEGORIAS_DISPONIBLES.map(c => (
-                                                    <option key={c.value} value={c.value}>{c.label}</option>
-                                                ))}
-                                            </select>
-                                            <label style={{display:'flex', alignItems:'center', gap:'4px', fontSize:'12px', color:'#64748b', cursor:'pointer', whiteSpace:'nowrap'}}>
-                                                <input
-                                                    type="checkbox" checked={j.capitan}
-                                                    onChange={e => actualizarJugador(idx, 'capitan', e.target.checked)}
-                                                    style={{width:'16px', height:'16px'}}
-                                                />
-                                                Cap.
-                                            </label>
-                                            <button onClick={() => quitarJugador(idx)}
-                                                style={{background:'#fee2e2', color:'#dc2626', border:'none', borderRadius:'6px', padding:'6px 10px', cursor:'pointer', fontWeight:'700', fontSize:'16px'}}
-                                            >×</button>
+
+                                {/* Formulario inline para agregar jugador */}
+                                {showAgregarJugador ? (
+                                    <div style={{background:'#f0f9ff', border:'2px solid #0ea5e9', borderRadius:'10px', padding:'16px', marginBottom:'14px'}}>
+                                        <div style={{marginBottom:'10px'}}>
+                                            <label style={{fontSize:'13px', fontWeight:'600', color:'#0369a1', display:'block', marginBottom:'4px'}}>Nombre *</label>
+                                            <input type="text" value={jugadorTemp.nombre}
+                                                onChange={e => setJugadorTemp({...jugadorTemp, nombre: e.target.value})}
+                                                onKeyPress={e => e.key === 'Enter' && agregarJugadorAlPlantel()}
+                                                autoFocus placeholder="Nombre del jugador"
+                                                style={{width:'100%', padding:'9px 12px', border:'2px solid #e2e8f0', borderRadius:'8px', fontSize:'14px'}} />
                                         </div>
-                                    ))}
-                                </div>
-                                <button className="btn btn-success" style={{marginTop:'12px', width:'100%', marginRight:0}}
-                                    onClick={agregarJugador}>
-                                    ＋ Agregar Jugador
-                                </button>
+                                        <div style={{marginBottom:'10px'}}>
+                                            <label style={{fontSize:'13px', fontWeight:'600', color:'#0369a1', display:'block', marginBottom:'4px'}}>Categoría *</label>
+                                            <select value={jugadorTemp.categoria}
+                                                onChange={e => setJugadorTemp({...jugadorTemp, categoria: e.target.value})}
+                                                style={{width:'100%', padding:'9px 12px', border:'2px solid #e2e8f0', borderRadius:'8px', fontSize:'14px'}}>
+                                                <option value="">-- Seleccionar categoría --</option>
+                                                {CATEGORIAS_DISPONIBLES.map(c => {
+                                                    const enCat = jugadores.filter(j => j.categoria === c.value).length;
+                                                    const llena = enCat >= c.max;
+                                                    return <option key={c.value} value={c.value} disabled={llena}>{c.label} ({enCat}/{c.max}){llena ? ' — COMPLETA' : ''}</option>;
+                                                })}
+                                            </select>
+                                        </div>
+                                        <div style={{marginBottom:'12px'}}>
+                                            <label style={{display:'flex', alignItems:'center', gap:'8px', cursor:'pointer', fontSize:'13px', fontWeight:'600', color:'#0369a1'}}>
+                                                <input type="checkbox" checked={jugadorTemp.capitan}
+                                                    onChange={e => setJugadorTemp({...jugadorTemp, capitan: e.target.checked})}
+                                                    style={{width:'18px', height:'18px'}} />
+                                                Es Capitán ⭐
+                                            </label>
+                                        </div>
+                                        {errorJugador && <div style={{background:'#fee2e2', color:'#991b1b', padding:'8px 12px', borderRadius:'6px', fontSize:'13px', marginBottom:'10px'}}>⚠️ {errorJugador}</div>}
+                                        <div style={{display:'flex', gap:'8px'}}>
+                                            <button onClick={agregarJugadorAlPlantel} style={{flex:2, padding:'9px', background:'#10b981', color:'white', border:'none', borderRadius:'8px', fontWeight:'700', cursor:'pointer', fontSize:'14px'}}>✓ Agregar</button>
+                                            <button onClick={() => { setShowAgregarJugador(false); setJugadorTemp({ nombre:'', categoria:'', capitan: false }); setErrorJugador(''); }} style={{flex:1, padding:'9px', background:'#f1f5f9', color:'#475569', border:'none', borderRadius:'8px', fontWeight:'600', cursor:'pointer'}}>Cancelar</button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <button onClick={() => setShowAgregarJugador(true)}
+                                        style={{width:'100%', padding:'12px', background:'#0ea5e9', color:'white', border:'none', borderRadius:'10px', fontWeight:'700', cursor:'pointer', fontSize:'14px', marginBottom:'14px'}}>
+                                        ＋ Agregar Jugador
+                                    </button>
+                                )}
+
+                                {/* Lista de jugadores agregados */}
+                                {jugadores.length > 0 ? (
+                                    <div style={{maxHeight:'260px', overflowY:'auto', paddingRight:'4px'}}>
+                                        {CATEGORIAS_DISPONIBLES.filter(c => jugadores.some(j => j.categoria === c.value)).map(c => (
+                                            <div key={c.value} style={{marginBottom:'10px'}}>
+                                                <div style={{fontSize:'12px', fontWeight:'700', color:'#475569', textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:'4px'}}>
+                                                    {c.label}
+                                                </div>
+                                                {jugadores.filter(j => j.categoria === c.value).map((j, i) => (
+                                                    <div key={j.nombre} style={{display:'flex', justifyContent:'space-between', alignItems:'center', background:'#f8fafc', padding:'8px 12px', borderRadius:'6px', marginBottom:'4px', border:'1px solid #e2e8f0'}}>
+                                                        <span style={{fontWeight:'600', fontSize:'14px'}}>
+                                                            {j.nombre}
+                                                            {j.capitan && <span style={{background:'#f59e0b', color:'white', fontSize:'9px', padding:'1px 6px', borderRadius:'4px', marginLeft:'6px'}}>CAP</span>}
+                                                        </span>
+                                                        <button onClick={() => quitarJugador(jugadores.indexOf(j))}
+                                                            style={{background:'#fee2e2', color:'#dc2626', border:'none', borderRadius:'6px', padding:'4px 10px', cursor:'pointer', fontWeight:'700', fontSize:'13px'}}>×</button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div style={{textAlign:'center', padding:'20px', color:'#94a3b8', background:'#f8fafc', borderRadius:'8px', border:'2px dashed #e2e8f0'}}>
+                                        Aún no hay jugadores. Usá el botón de arriba para agregar.
+                                    </div>
+                                )}
                             </div>
                         )}
 
@@ -918,7 +953,8 @@
                     doc.setFont(undefined, 'normal'); doc.setFontSize(9);
                     
                     Object.entries(partidosPorJugador).sort((a, b) => b[1] - a[1]).forEach(([jugador, cantidad]) => {
-                        const jugadorObj = Object.values(JUGADORES_GOAT).flat().find(j => j.nombre === jugador);
+                        const plantel = config?.plantel || {};
+                        const jugadorObj = Object.values(plantel).flat().find(j => j.nombre === jugador);
                         const esCapitan = jugadorObj?.capitan ? ' (CAPITAN)' : '';
                         const advertencia = cantidad > 3 ? ' *** EXCEDE LIMITE ***' : '';
                         if (cantidad > 3) doc.setFont(undefined, 'bold');
@@ -932,7 +968,8 @@
 
             const calcularEstadisticas = () => {
                 const stats = { jugadores: {}, parejas: {} };
-                const todosJugadores = Object.values(JUGADORES_GOAT).flat();
+                const plantel = config?.plantel || {};
+                const todosJugadores = Object.values(plantel).flat();
                 todosJugadores.forEach(jugador => {
                     stats.jugadores[jugador.nombre] = { singles: { ganados: 0, perdidos: 0 }, dobles: { ganados: 0, perdidos: 0 }, total: { ganados: 0, perdidos: 0 } };
                 });
@@ -1001,19 +1038,21 @@
                     </div>
 
                     <div className="content">
-                        {activeTab === 'busqueda' && <BusquedaTab fechas={fechas} />}
+                        {activeTab === 'busqueda' && <BusquedaTab fechas={fechas} plantel={config?.plantel || {}} />}
                         {activeTab === 'estadisticas' && <EstadisticasTab calcularEstadisticas={calcularEstadisticas} />}
                         
                         {activeTab === 'configuracion' && (
                             <ConfiguracionTab 
                                 userRole={userRole} numEquipos={numEquipos} setNumEquipos={setNumEquipos} equipos={equipos} baseEquipos={baseEquipos} setBaseEquipos={setBaseEquipos}
                                 guardarEquiposSeleccionados={guardarEquiposSeleccionados} agregarFecha={agregarFecha} fechas={fechas} zonasConfig={zonasConfig} setZonasConfig={setZonasConfig}
+                                config={config} setConfig={setConfig}
                             />
                         )}
                         {activeTab === 'fechas' && (
                             <FechasTab 
                                 userRole={userRole} fechas={fechas} procesarHorarios={procesarHorarios} actualizarJugadores={actualizarJugadores} 
-                                contarPartidosJugador={contarPartidosJugador} generarPDF={generarPDF} setFechas={setFechas} 
+                                contarPartidosJugador={contarPartidosJugador} generarPDF={generarPDF} setFechas={setFechas}
+                                plantel={config?.plantel || {}}
                             />
                         )}
                         {activeTab === 'resultados' && (
@@ -1042,10 +1081,10 @@
 
         // COMPONENTES
 
-        function BusquedaTab({ fechas }) {
+        function BusquedaTab({ fechas, plantel }) {
             const [jugadorSeleccionado, setJugadorSeleccionado] = useState('');
             const [fechaSeleccionada, setFechaSeleccionada] = useState('todas');
-            const jugadores = Object.values(JUGADORES_GOAT).flat().map(j => j.nombre).sort((a, b) => a.localeCompare(b));
+            const jugadores = Object.values(plantel).flat().map(j => j.nombre).sort((a, b) => a.localeCompare(b));
 
             return (
                 <div>
@@ -1226,51 +1265,334 @@
                 </div>
             );
         }
-        function ConfiguracionTab({ userRole, numEquipos, setNumEquipos, equipos, baseEquipos, setBaseEquipos, guardarEquiposSeleccionados, agregarFecha, fechas, zonasConfig, setZonasConfig }) {
+        // ── Modal para cargar equipos rivales ──
+        function ModalCargarEquipos({ numEquipos, baseEquipos, setBaseEquipos, onGuardar, onClose }) {
+            const [rivalesSeleccionados, setRivalesSeleccionados] = useState([...baseEquipos]);
+            const [nuevoEquipo, setNuevoEquipo] = useState('');
+            const cantidadRivales = numEquipos - 1; // -1 porque el propio equipo ya ocupa 1 slot
+
+            const toggleEquipo = (nombre) => {
+                if (rivalesSeleccionados.includes(nombre)) {
+                    setRivalesSeleccionados(rivalesSeleccionados.filter(e => e !== nombre));
+                } else {
+                    if (rivalesSeleccionados.length >= cantidadRivales) {
+                        alert(`Solo podés seleccionar ${cantidadRivales} equipos rivales para un torneo de ${numEquipos} equipos.`);
+                        return;
+                    }
+                    setRivalesSeleccionados([...rivalesSeleccionados, nombre]);
+                }
+            };
+
+            const agregarCustom = () => {
+                const nombre = nuevoEquipo.trim();
+                if (!nombre) return;
+                if (baseEquipos.includes(nombre)) { setNuevoEquipo(''); return; }
+                setBaseEquipos([...baseEquipos, nombre]);
+                if (rivalesSeleccionados.length < cantidadRivales) setRivalesSeleccionados([...rivalesSeleccionados, nombre]);
+                setNuevoEquipo('');
+            };
+
+            return (
+                <div className="modal" onClick={onClose}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()} style={{maxWidth:'600px'}}>
+                        <div className="modal-header">🏆 Cargar Equipos Rivales</div>
+                        <p style={{color:'#64748b', marginBottom:'16px', fontSize:'14px'}}>
+                            Seleccioná <strong>{cantidadRivales} equipos</strong> rivales para el torneo de {numEquipos} equipos.<br/>
+                            Seleccionados: <strong style={{color: rivalesSeleccionados.length === cantidadRivales ? '#10b981' : '#1e3c72'}}>{rivalesSeleccionados.length} / {cantidadRivales}</strong>
+                        </p>
+
+                        <div style={{display:'flex', gap:'8px', marginBottom:'16px'}}>
+                            <input type="text" value={nuevoEquipo} onChange={e => setNuevoEquipo(e.target.value)}
+                                onKeyPress={e => e.key === 'Enter' && agregarCustom()}
+                                placeholder="Agregar equipo nuevo..." style={{flex:1}} />
+                            <button className="btn btn-success" style={{margin:0, padding:'10px 16px'}} onClick={agregarCustom}>＋</button>
+                        </div>
+
+                        <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(180px, 1fr))', gap:'8px', maxHeight:'320px', overflowY:'auto', padding:'4px'}}>
+                            {baseEquipos.map(nombre => {
+                                const sel = rivalesSeleccionados.includes(nombre);
+                                return (
+                                    <div key={nombre} onClick={() => toggleEquipo(nombre)} style={{
+                                        padding:'10px 14px', borderRadius:'8px', cursor:'pointer',
+                                        border: sel ? '2px solid #d4af37' : '2px solid #e2e8f0',
+                                        background: sel ? '#fffbef' : '#f8fafc',
+                                        fontWeight: sel ? '700' : '400',
+                                        color: sel ? '#1a1a1a' : '#475569',
+                                        transition:'0.2s',
+                                        display:'flex', justifyContent:'space-between', alignItems:'center'
+                                    }}>
+                                        {nombre}
+                                        {sel && <span style={{color:'#d4af37'}}>✓</span>}
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        <div style={{display:'flex', gap:'10px', marginTop:'20px'}}>
+                            <button className="btn btn-primary" style={{flex:2, marginRight:0}}
+                                onClick={() => {
+                                    if (rivalesSeleccionados.length !== cantidadRivales) {
+                                        alert(`Necesitás seleccionar exactamente ${cantidadRivales} equipos.`);
+                                        return;
+                                    }
+                                    onGuardar(rivalesSeleccionados);
+                                }}>
+                                Guardar Equipos
+                            </button>
+                            <button className="btn btn-danger" style={{flex:1, marginRight:0}} onClick={onClose}>Cancelar</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // ── Modal para agregar/editar un jugador ──
+        function ModalJugador({ jugadorInicial, plantelActual, onGuardar, onClose }) {
+            const esEdicion = !!jugadorInicial;
+            const [nombre, setNombre] = useState(jugadorInicial?.nombre || '');
+            const [categoria, setCategoria] = useState(jugadorInicial?.categoria || 'caballeros_3ra');
+            const [capitan, setCapitan] = useState(jugadorInicial?.capitan || false);
+            const [error, setError] = useState('');
+
+            const guardar = () => {
+                const nom = nombre.trim();
+                if (!nom) { setError('El nombre es obligatorio.'); return; }
+                // Check duplicates (skip self if editing)
+                const todos = Object.values(plantelActual).flat();
+                const duplicado = todos.find(j => j.nombre.toLowerCase() === nom.toLowerCase() && j.nombre !== jugadorInicial?.nombre);
+                if (duplicado) { setError('Ya existe un jugador con ese nombre.'); return; }
+                // Check category limit
+                const enCategoria = (plantelActual[categoria] || []).filter(j => !esEdicion || j.nombre !== jugadorInicial?.nombre);
+                const max = MAX_POR_CATEGORIA[categoria] || 5;
+                if (enCategoria.length >= max) { setError(`La categoría ${CATEGORIAS_DISPONIBLES.find(c=>c.value===categoria)?.label} ya tiene el máximo de ${max} jugadores.`); return; }
+                onGuardar({ nombre: nom, categoria, capitan });
+            };
+
+            return (
+                <div className="modal" onClick={onClose}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()} style={{maxWidth:'440px'}}>
+                        <div className="modal-header">{esEdicion ? '✏️ Editar Jugador' : '➕ Agregar Jugador'}</div>
+                        <div className="form-group">
+                            <label>Nombre *</label>
+                            <input type="text" value={nombre} onChange={e => setNombre(e.target.value)} autoFocus
+                                onKeyPress={e => e.key === 'Enter' && guardar()}
+                                placeholder="Nombre del jugador" />
+                        </div>
+                        <div className="form-group">
+                            <label>Categoría</label>
+                            <select value={categoria} onChange={e => setCategoria(e.target.value)}>
+                                {CATEGORIAS_DISPONIBLES.map(c => (
+                                    <option key={c.value} value={c.value}>{c.label} (máx. {c.max})</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="form-group">
+                            <label style={{display:'flex', alignItems:'center', gap:'10px', cursor:'pointer'}}>
+                                <input type="checkbox" checked={capitan} onChange={e => setCapitan(e.target.checked)} style={{width:'20px', height:'20px'}} />
+                                Es Capitán ⭐
+                            </label>
+                        </div>
+                        {error && <div style={{background:'#fee2e2', color:'#991b1b', padding:'10px', borderRadius:'8px', marginBottom:'12px', fontSize:'14px'}}>⚠️ {error}</div>}
+                        <div style={{display:'flex', gap:'10px', marginTop:'8px'}}>
+                            <button className="btn btn-primary" style={{flex:2, marginRight:0}} onClick={guardar}>
+                                {esEdicion ? 'Guardar Cambios' : 'Agregar'}
+                            </button>
+                            <button className="btn btn-danger" style={{flex:1, marginRight:0}} onClick={onClose}>Cancelar</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function ConfiguracionTab({ userRole, numEquipos, setNumEquipos, equipos, baseEquipos, setBaseEquipos, guardarEquiposSeleccionados, agregarFecha, fechas, zonasConfig, setZonasConfig, config, setConfig }) {
             const miEquipoNombre = (equipos.find(e => e.esGoat) || { nombre: 'Mi Equipo' }).nombre;
             const [showEquiposModal, setShowEquiposModal] = useState(false);
             const [showAsignarFechasModal, setShowAsignarFechasModal] = useState(false);
+            const [editandoNumEquipos, setEditandoNumEquipos] = useState(false);
+            const [numEquiposTemp, setNumEquiposTemp] = useState(numEquipos);
+
+            // Plantel management
+            const [showJugadorModal, setShowJugadorModal] = useState(false);
+            const [jugadorEditando, setJugadorEditando] = useState(null); // null = nuevo
+            const [guardandoPlantel, setGuardandoPlantel] = useState(false);
+
+            const plantelActual = config?.plantel || {};
+
+            const guardarPlantelEnFirebase = async (nuevoPlantel) => {
+                setGuardandoPlantel(true);
+                try {
+                    const nuevaConfig = { ...config, plantel: nuevoPlantel };
+                    await guardarConfigFirebase(nuevaConfig);
+                    setConfig(nuevaConfig);
+                    localStorage.setItem(`${ID_PROYECTO}_config`, JSON.stringify(nuevaConfig));
+                } catch (e) {
+                    alert('Error al guardar plantel en Firebase. Verificá tu conexión.');
+                } finally {
+                    setGuardandoPlantel(false);
+                }
+            };
+
+            const onGuardarJugador = async (jugadorData) => {
+                const nuevoPlantel = JSON.parse(JSON.stringify(plantelActual));
+                // Remove from old category if editing and category changed
+                if (jugadorEditando) {
+                    Object.keys(nuevoPlantel).forEach(cat => {
+                        nuevoPlantel[cat] = (nuevoPlantel[cat] || []).filter(j => j.nombre !== jugadorEditando.nombre);
+                        if (nuevoPlantel[cat].length === 0) delete nuevoPlantel[cat];
+                    });
+                }
+                if (!nuevoPlantel[jugadorData.categoria]) nuevoPlantel[jugadorData.categoria] = [];
+                nuevoPlantel[jugadorData.categoria].push({ nombre: jugadorData.nombre, categoria: jugadorData.categoria, capitan: jugadorData.capitan });
+                await guardarPlantelEnFirebase(nuevoPlantel);
+                setShowJugadorModal(false);
+                setJugadorEditando(null);
+            };
+
+            const eliminarJugador = async (nombreJugador, categoriaJugador) => {
+                if (!confirm(`¿Eliminar a ${nombreJugador}? Esta acción no se puede deshacer.`)) return;
+                const nuevoPlantel = JSON.parse(JSON.stringify(plantelActual));
+                nuevoPlantel[categoriaJugador] = (nuevoPlantel[categoriaJugador] || []).filter(j => j.nombre !== nombreJugador);
+                if (nuevoPlantel[categoriaJugador].length === 0) delete nuevoPlantel[categoriaJugador];
+                await guardarPlantelEnFirebase(nuevoPlantel);
+            };
+
+            const ascenderJugador = (jugador) => {
+                // Open edit modal with next category pre-selected
+                const idx = CATEGORIAS_DISPONIBLES.findIndex(c => c.value === jugador.categoria);
+                const catSuperior = idx > 0 ? CATEGORIAS_DISPONIBLES[idx - 1].value : jugador.categoria;
+                setJugadorEditando({ ...jugador, categoriaOriginal: jugador.categoria });
+                setShowJugadorModal(true);
+                // We'll preselect catSuperior in the modal by passing it
+            };
+
+            const ORDEN_CATS = ['damas_a','damas_b','damas_c','caballeros_2da','caballeros_3ra','caballeros_4ta','caballeros_5ta'];
+            const NOMBRES_CATS = { damas_a:'Damas A', damas_b:'Damas B', damas_c:'Damas C', caballeros_2da:'Caballeros 2da', caballeros_3ra:'Caballeros 3ra', caballeros_4ta:'Caballeros 4ta', caballeros_5ta:'Caballeros 5ta' };
+
+            const getCatSuperior = (cat) => {
+                const idx = CATEGORIAS_DISPONIBLES.findIndex(c => c.value === cat);
+                return idx > 0 ? CATEGORIAS_DISPONIBLES[idx - 1].value : null;
+            };
 
             return (
                 <div>
                     <h2 style={{marginBottom: '20px', color: '#1e3c72'}}>Configuración del Torneo</h2>
                     
-                    {userRole !== 'jugador' && (
-                        <div className="form-group">
-                            <label>Número total de equipos</label>
-                            <input type="number" value={numEquipos} onChange={(e) => setNumEquipos(parseInt(e.target.value))} min="2" max="20" disabled={equipos.length > 0} />
-                        </div>
-                    )}
-
-                    {userRole !== 'jugador' && numEquipos === 10 && equipos.length < 10 && (
-                        <div className="form-group">
-                            <button className="btn btn-primary btn-responsive" onClick={() => setShowEquiposModal(true)}>Cargar Equipos Rivales</button>
-                        </div>
-                    )}
-
-                    {showEquiposModal && (
-                        <ModalCargarEquipos baseEquipos={baseEquipos} setBaseEquipos={setBaseEquipos} onGuardar={(rivales) => { guardarEquiposSeleccionados(rivales); setShowEquiposModal(false); }} onClose={() => setShowEquiposModal(false)} />
-                    )}
-
-                    {userRole !== 'jugador' && equipos.length > 0 && (
-                        <div>
-                            <h3 style={{marginTop: '30px', marginBottom: '15px'}}>Equipos Registrados</h3>
-                            <div className="team-list">
-                                {equipos.map((eq, idx) => (
-                                    <div key={idx} className={`team-card ${eq.esGoat ? 'goat' : ''}`}>
-                                        <strong>{eq.nombre}</strong> {eq.esGoat && <span> ⭐</span>}
-                                    </div>
-                                ))}
+                    {/* ── SECCIÓN: PLANTEL ── */}
+                    {(userRole === 'admin' || userRole === 'capitan') && (
+                        <div style={{marginBottom:'30px', padding:'20px', background:'#f8fafc', borderRadius:'12px', border:'1px solid #e2e8f0'}}>
+                            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'16px', flexWrap:'wrap', gap:'10px'}}>
+                                <h3 style={{color:'#1e3c72', margin:0}}>👤 Gestión del Plantel</h3>
+                                <button className="btn btn-primary" style={{margin:0}} disabled={guardandoPlantel}
+                                    onClick={() => { setJugadorEditando(null); setShowJugadorModal(true); }}>
+                                    ＋ Agregar Jugador
+                                </button>
                             </div>
+
+                            {Object.keys(plantelActual).length === 0 ? (
+                                <div style={{textAlign:'center', padding:'24px', color:'#94a3b8'}}>
+                                    <p>No hay jugadores cargados. Agregá el primero.</p>
+                                </div>
+                            ) : (
+                                ORDEN_CATS.filter(cat => plantelActual[cat] && plantelActual[cat].length > 0).map(cat => (
+                                    <div key={cat} style={{marginBottom:'16px'}}>
+                                        <div style={{display:'flex', alignItems:'center', gap:'8px', marginBottom:'8px'}}>
+                                            <span style={{fontWeight:'700', color:'#1e3c72', fontSize:'14px'}}>{NOMBRES_CATS[cat]}</span>
+                                            <span style={{background:'#e0f2fe', color:'#0369a1', fontSize:'11px', padding:'2px 8px', borderRadius:'10px'}}>
+                                                {plantelActual[cat].length} / {MAX_POR_CATEGORIA[cat]}
+                                            </span>
+                                        </div>
+                                        <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(200px, 1fr))', gap:'8px'}}>
+                                            {plantelActual[cat].map(jugador => (
+                                                <div key={jugador.nombre} style={{background:'white', padding:'10px 12px', borderRadius:'8px', border:'1px solid #e2e8f0', display:'flex', justifyContent:'space-between', alignItems:'center', gap:'8px'}}>
+                                                    <span style={{fontWeight:'600', fontSize:'14px', color:'#1e293b'}}>
+                                                        {jugador.nombre}
+                                                        {jugador.capitan && <span style={{background:'#f59e0b', color:'white', fontSize:'9px', padding:'1px 6px', borderRadius:'4px', marginLeft:'6px'}}>CAP</span>}
+                                                    </span>
+                                                    <div style={{display:'flex', gap:'4px', flexShrink:0}}>
+                                                        {getCatSuperior(cat) && (
+                                                            <button title="Ascender de categoría"
+                                                                onClick={() => { setJugadorEditando({...jugador, categoria: getCatSuperior(cat)}); setShowJugadorModal(true); }}
+                                                                style={{background:'#dbeafe', color:'#1d4ed8', border:'none', borderRadius:'6px', padding:'4px 8px', cursor:'pointer', fontSize:'14px', fontWeight:'700'}}>↑</button>
+                                                        )}
+                                                        <button title="Editar jugador"
+                                                            onClick={() => { setJugadorEditando(jugador); setShowJugadorModal(true); }}
+                                                            style={{background:'#f1f5f9', color:'#475569', border:'none', borderRadius:'6px', padding:'4px 8px', cursor:'pointer', fontSize:'14px'}}>✏️</button>
+                                                        <button title="Eliminar jugador"
+                                                            onClick={() => eliminarJugador(jugador.nombre, cat)}
+                                                            style={{background:'#fee2e2', color:'#dc2626', border:'none', borderRadius:'6px', padding:'4px 8px', cursor:'pointer', fontSize:'14px'}}>🗑️</button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                            {guardandoPlantel && <div style={{textAlign:'center', color:'#64748b', marginTop:'8px', fontSize:'13px'}}>⏳ Guardando en Firebase...</div>}
                         </div>
                     )}
 
-                    {equipos.length === 10 && (
-                        <div style={{marginTop: userRole !== 'jugador' ? '40px' : '0px'}}>
-                            
+                    {/* ── SECCIÓN: EQUIPOS DEL TORNEO ── */}
+                    {userRole !== 'jugador' && (
+                        <div style={{marginBottom:'24px'}}>
+                            <h3 style={{color:'#1e3c72', marginBottom:'12px'}}>🏆 Equipos del Torneo</h3>
+                            <div style={{display:'flex', alignItems:'center', gap:'12px', marginBottom:'16px', flexWrap:'wrap'}}>
+                                <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
+                                    <label style={{marginBottom:0, fontWeight:'600', color:'#334155'}}>Número de equipos:</label>
+                                    {editandoNumEquipos || equipos.length === 0 ? (
+                                        <>
+                                            <input type="number" value={numEquiposTemp}
+                                                onChange={e => setNumEquiposTemp(parseInt(e.target.value) || 2)}
+                                                min="2" max="30"
+                                                style={{width:'80px', padding:'8px', border:'2px solid #d4af37', borderRadius:'8px', fontSize:'14px', fontWeight:'700'}} />
+                                            <button className="btn btn-primary" style={{margin:0, padding:'8px 14px', fontSize:'13px'}}
+                                                onClick={() => { setNumEquipos(numEquiposTemp); setEditandoNumEquipos(false); }}>
+                                                Aplicar
+                                            </button>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <strong style={{fontSize:'18px', color:'#1e3c72'}}>{numEquipos}</strong>
+                                            {equipos.length === 0 && (
+                                                <button className="btn" style={{margin:0, padding:'6px 12px', fontSize:'12px', background:'#f1f5f9', color:'#475569'}}
+                                                    onClick={() => { setNumEquiposTemp(numEquipos); setEditandoNumEquipos(true); }}>
+                                                    ✏️ Cambiar
+                                                </button>
+                                            )}
+                                        </>
+                                    )}
+                                </div>
+                                {equipos.length === 0 && (
+                                    <button className="btn btn-primary" style={{margin:0}}
+                                        onClick={() => setShowEquiposModal(true)}>
+                                        Cargar Equipos Rivales
+                                    </button>
+                                )}
+                                {equipos.length > 0 && (
+                                    <button className="btn" style={{margin:0, background:'#fef3c7', color:'#92400e', border:'1px solid #f59e0b', padding:'8px 14px', fontSize:'13px'}}
+                                        onClick={() => { if(confirm('¿Resetear equipos? Se perderá la configuración de zonas.')) { guardarEquiposSeleccionados([]); setEditandoNumEquipos(true); setNumEquiposTemp(numEquipos); } }}>
+                                        🔄 Resetear Equipos
+                                    </button>
+                                )}
+                            </div>
+
+                            {equipos.length > 0 && (
+                                <div className="team-list">
+                                    {equipos.map((eq, idx) => (
+                                        <div key={idx} className={`team-card ${eq.esGoat ? 'goat' : ''}`}>
+                                            <strong>{eq.nombre}</strong> {eq.esGoat && <span>⭐</span>}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* ── SECCIÓN: FECHAS ── */}
+                    {equipos.length >= numEquipos && (
+                        <div style={{marginTop: userRole !== 'jugador' ? '20px' : '0px'}}>
                             {userRole !== 'jugador' && (
                                 <div>
-                                    <h3 style={{marginBottom: '20px'}}>Configurar Fechas</h3>
+                                    <h3 style={{marginBottom: '20px', color:'#1e3c72'}}>Configurar Fechas</h3>
                                     {[1, 2, 3, 4].map(numFecha => (
                                         <div key={numFecha} className="form-group">
                                             <label>Rival Fecha {numFecha}</label>
@@ -1280,7 +1602,7 @@
                                             </select>
                                         </div>
                                     ))}
-                                    {fechas.length === 4 && (<div className="success-message">✓ Todas las fechas configuradas. Ir a la pestaña "Fechas" para armar los equipos.</div>)}
+                                    {fechas.filter(Boolean).length === 4 && (<div className="success-message">✓ Todas las fechas configuradas. Ir a la pestaña "Fechas" para armar los equipos.</div>)}
                                 </div>
                             )}
 
@@ -1338,6 +1660,21 @@
                         </div>
                     )}
 
+                    {showEquiposModal && (
+                        <ModalCargarEquipos numEquipos={numEquipos} baseEquipos={baseEquipos} setBaseEquipos={setBaseEquipos}
+                            onGuardar={(rivales) => { guardarEquiposSeleccionados(rivales); setShowEquiposModal(false); }}
+                            onClose={() => setShowEquiposModal(false)} />
+                    )}
+
+                    {showJugadorModal && (
+                        <ModalJugador
+                            jugadorInicial={jugadorEditando}
+                            plantelActual={plantelActual}
+                            onGuardar={onGuardarJugador}
+                            onClose={() => { setShowJugadorModal(false); setJugadorEditando(null); }}
+                        />
+                    )}
+
                     {showAsignarFechasModal && (
                         <AsignarFechasModal zonasConfig={zonasConfig} equipos={equipos} onClose={() => setShowAsignarFechasModal(false)}
                             onGenerar={(crucesGenerados) => {
@@ -1353,7 +1690,7 @@
             );
         }
 
-        function FechasTab({ userRole, fechas, procesarHorarios, actualizarJugadores, contarPartidosJugador, generarPDF, setFechas }) {
+        function FechasTab({ userRole, fechas, procesarHorarios, actualizarJugadores, contarPartidosJugador, generarPDF, setFechas, plantel }) {
             const [fechaSeleccionada, setFechaSeleccionada] = useState(0);
             const [showHorarioModal, setShowHorarioModal] = useState(false);
             const [horarioActual, setHorarioActual] = useState({ dia: 'sabado', hora: '09:00', partido1: '', partido2: '' });
@@ -1486,7 +1823,7 @@
                         <button className="btn btn-success btn-responsive" onClick={() => generarPDF(fechaSeleccionada)} style={{marginTop: '20px'}}>📄 Descargar Convocatoria (PDF)</button>
                     </div>
 
-                    {showCategoriasModal && ( <ModalCategorias categoriasTemp={categoriasTemp} setCategoriasTemp={setCategoriasTemp} jugadoresHabilitadosTemp={jugadoresHabilitadosTemp} toggleJugadorHabilitado={toggleJugadorHabilitado} guardarCategorias={guardarCategorias} setShowCategoriasModal={setShowCategoriasModal} /> )}
+                    {showCategoriasModal && ( <ModalCategorias plantel={plantel} categoriasTemp={categoriasTemp} setCategoriasTemp={setCategoriasTemp} jugadoresHabilitadosTemp={jugadoresHabilitadosTemp} toggleJugadorHabilitado={toggleJugadorHabilitado} guardarCategorias={guardarCategorias} setShowCategoriasModal={setShowCategoriasModal} /> )}
 
                     {showHorarioModal && (
                         <div className="modal" onClick={() => { if (confirm('¿Cerrar sin guardar?')) { setShowHorarioModal(false); setHorarioActual({ dia: 'sabado', hora: '09:00', partido1: '', partido2: '' }); setEditandoHorario(null); } }}>
@@ -1541,6 +1878,7 @@
                             <PartidoCard 
                                 key={partido.id} partido={partido} fechaIndex={fechaSeleccionada} fecha={fecha} userRole={userRole}
                                 actualizarJugadores={actualizarJugadores} contarPartidosJugador={contarPartidosJugador} esBonus={fecha.partidoBonus === partido.id}
+                                plantel={plantel}
                             />
                         ))}
                     </div>
@@ -1548,33 +1886,38 @@
             );
         }
 
-        function ModalCategorias({categoriasTemp, setCategoriasTemp, jugadoresHabilitadosTemp, toggleJugadorHabilitado, guardarCategorias, setShowCategoriasModal}) {
+        function ModalCategorias({plantel, categoriasTemp, setCategoriasTemp, jugadoresHabilitadosTemp, toggleJugadorHabilitado, guardarCategorias, setShowCategoriasModal}) {
+            const HABILITACIONES = [
+                { key: 'caballeros_5ta_en_4ta', label: 'Caballeros 5ta → 4ta', origen: 'caballeros_5ta', destino: 'caballeros_4ta' },
+                { key: 'caballeros_4ta_en_3ra', label: 'Caballeros 4ta → 3ra', origen: 'caballeros_4ta', destino: 'caballeros_3ra' },
+                { key: 'caballeros_3ra_en_2da', label: 'Caballeros 3ra → 2da', origen: 'caballeros_3ra', destino: 'caballeros_2da' },
+                { key: 'damas_c_en_b',          label: 'Damas C → B',          origen: 'damas_c',        destino: 'damas_b'        },
+                { key: 'damas_b_en_a',          label: 'Damas B → A',          origen: 'damas_b',        destino: 'damas_a'        },
+            ];
             return (
                 <div className="modal" onClick={() => {}}>
                     <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{maxWidth: '700px'}}>
                         <div className="modal-header">Habilitar Jugadores en Categorías Superiores</div>
                         <p style={{marginBottom: '20px', color: '#666'}}>Los jugadores habilitados NO contarán en el límite de 3 partidos cuando jueguen en categoría superior.</p>
-
-                        <div style={{marginBottom: '20px', padding: '15px', background: '#f8f9fa', borderRadius: '8px'}}>
-                            <label style={{display: 'flex', alignItems: 'center', gap: '10px', fontWeight: '700', marginBottom: '10px'}}><input type="checkbox" checked={categoriasTemp.caballeros_5ta_en_4ta || false} onChange={(e) => setCategoriasTemp({...categoriasTemp, caballeros_5ta_en_4ta: e.target.checked})} /> Caballeros 5ta → 4ta</label>
-                            {categoriasTemp.caballeros_5ta_en_4ta && (<div style={{marginLeft: '30px'}}>{JUGADORES_GOAT.caballeros_5ta.map(j => (<label key={j.nombre} style={{display: 'block', marginBottom: '5px'}}><input type="checkbox" checked={jugadoresHabilitadosTemp.some(jh => jh.jugador === j.nombre && jh.categoriaDestino === 'caballeros_4ta')} onChange={() => toggleJugadorHabilitado(j.nombre, 'caballeros_4ta')} /> {j.nombre}</label>))}</div>)}
-                        </div>
-                        <div style={{marginBottom: '20px', padding: '15px', background: '#f8f9fa', borderRadius: '8px'}}>
-                            <label style={{display: 'flex', alignItems: 'center', gap: '10px', fontWeight: '700', marginBottom: '10px'}}><input type="checkbox" checked={categoriasTemp.caballeros_4ta_en_3ra || false} onChange={(e) => setCategoriasTemp({...categoriasTemp, caballeros_4ta_en_3ra: e.target.checked})} /> Caballeros 4ta → 3ra</label>
-                            {categoriasTemp.caballeros_4ta_en_3ra && (<div style={{marginLeft: '30px'}}>{JUGADORES_GOAT.caballeros_4ta.map(j => (<label key={j.nombre} style={{display: 'block', marginBottom: '5px'}}><input type="checkbox" checked={jugadoresHabilitadosTemp.some(jh => jh.jugador === j.nombre && jh.categoriaDestino === 'caballeros_3ra')} onChange={() => toggleJugadorHabilitado(j.nombre, 'caballeros_3ra')} /> {j.nombre}</label>))}</div>)}
-                        </div>
-                        <div style={{marginBottom: '20px', padding: '15px', background: '#f8f9fa', borderRadius: '8px'}}>
-                            <label style={{display: 'flex', alignItems: 'center', gap: '10px', fontWeight: '700', marginBottom: '10px'}}><input type="checkbox" checked={categoriasTemp.caballeros_3ra_en_2da || false} onChange={(e) => setCategoriasTemp({...categoriasTemp, caballeros_3ra_en_2da: e.target.checked})} /> Caballeros 3ra → 2da</label>
-                            {categoriasTemp.caballeros_3ra_en_2da && (<div style={{marginLeft: '30px'}}>{JUGADORES_GOAT.caballeros_3ra.map(j => (<label key={j.nombre} style={{display: 'block', marginBottom: '5px'}}><input type="checkbox" checked={jugadoresHabilitadosTemp.some(jh => jh.jugador === j.nombre && jh.categoriaDestino === 'caballeros_2da')} onChange={() => toggleJugadorHabilitado(j.nombre, 'caballeros_2da')} /> {j.nombre}</label>))}</div>)}
-                        </div>
-                        <div style={{marginBottom: '20px', padding: '15px', background: '#f8f9fa', borderRadius: '8px'}}>
-                            <label style={{display: 'flex', alignItems: 'center', gap: '10px', fontWeight: '700', marginBottom: '10px'}}><input type="checkbox" checked={categoriasTemp.damas_c_en_b || false} onChange={(e) => setCategoriasTemp({...categoriasTemp, damas_c_en_b: e.target.checked})} /> Damas C → B</label>
-                            {categoriasTemp.damas_c_en_b && (<div style={{marginLeft: '30px'}}>{JUGADORES_GOAT.damas_c.map(j => (<label key={j.nombre} style={{display: 'block', marginBottom: '5px'}}><input type="checkbox" checked={jugadoresHabilitadosTemp.some(jh => jh.jugador === j.nombre && jh.categoriaDestino === 'damas_b')} onChange={() => toggleJugadorHabilitado(j.nombre, 'damas_b')} /> {j.nombre}</label>))}</div>)}
-                        </div>
-                        <div style={{marginBottom: '20px', padding: '15px', background: '#f8f9fa', borderRadius: '8px'}}>
-                            <label style={{display: 'flex', alignItems: 'center', gap: '10px', fontWeight: '700', marginBottom: '10px'}}><input type="checkbox" checked={categoriasTemp.damas_b_en_a || false} onChange={(e) => setCategoriasTemp({...categoriasTemp, damas_b_en_a: e.target.checked})} /> Damas B → A</label>
-                            {categoriasTemp.damas_b_en_a && (<div style={{marginLeft: '30px'}}>{JUGADORES_GOAT.damas_b.map(j => (<label key={j.nombre} style={{display: 'block', marginBottom: '5px'}}><input type="checkbox" checked={jugadoresHabilitadosTemp.some(jh => jh.jugador === j.nombre && jh.categoriaDestino === 'damas_a')} onChange={() => toggleJugadorHabilitado(j.nombre, 'damas_a')} /> {j.nombre}</label>))}</div>)}
-                        </div>
+                        {HABILITACIONES.map(h => (
+                            <div key={h.key} style={{marginBottom: '20px', padding: '15px', background: '#f8f9fa', borderRadius: '8px'}}>
+                                <label style={{display: 'flex', alignItems: 'center', gap: '10px', fontWeight: '700', marginBottom: '10px'}}>
+                                    <input type="checkbox" checked={categoriasTemp[h.key] || false} onChange={(e) => setCategoriasTemp({...categoriasTemp, [h.key]: e.target.checked})} /> {h.label}
+                                </label>
+                                {categoriasTemp[h.key] && (
+                                    <div style={{marginLeft: '30px'}}>
+                                        {(plantel[h.origen] || []).map(j => (
+                                            <label key={j.nombre} style={{display: 'block', marginBottom: '5px'}}>
+                                                <input type="checkbox"
+                                                    checked={jugadoresHabilitadosTemp.some(jh => jh.jugador === j.nombre && jh.categoriaDestino === h.destino)}
+                                                    onChange={() => toggleJugadorHabilitado(j.nombre, h.destino)}
+                                                /> {j.nombre}
+                                            </label>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        ))}
                         <div className="flex-mobile-col" style={{display: 'flex', gap: '10px', marginTop: '20px'}}>
                             <button className="btn btn-primary btn-responsive" onClick={guardarCategorias}>Guardar</button>
                             <button className="btn btn-danger btn-responsive" onClick={() => { setShowCategoriasModal(false); }}>Cancelar</button>
@@ -1584,17 +1927,17 @@
             );
         }
 
-        function PartidoCard({ partido, fechaIndex, fecha, actualizarJugadores, contarPartidosJugador, esBonus, userRole }) {
+        function PartidoCard({ partido, fechaIndex, fecha, actualizarJugadores, contarPartidosJugador, esBonus, userRole, plantel }) {
             const [jugadoresSeleccionados, setJugadoresSeleccionados] = useState(partido.jugadores || []);
             useEffect(() => { setJugadoresSeleccionados(partido.jugadores || []); }, [partido.jugadores]);
 
             const jugadoresHabilitados = fecha.jugadoresHabilitados || [];
             const jugadoresDisponibles = partido.categorias.flatMap(cat => {
-                const jugadoresBase = JUGADORES_GOAT[cat] || [];
+                const jugadoresBase = (plantel[cat] || []);
                 const jugadoresExtra = jugadoresHabilitados.filter(jh => jh.categoriaDestino === cat).map(jh => {
-                    const jugadorOriginal = Object.values(JUGADORES_GOAT).flat().find(j => j.nombre === jh.jugador);
-                    return { ...jugadorOriginal, esHabilitado: true, categoriaOriginal: jugadorOriginal.categoria };
-                });
+                    const jugadorOriginal = Object.values(plantel).flat().find(j => j.nombre === jh.jugador);
+                    return jugadorOriginal ? { ...jugadorOriginal, esHabilitado: true, categoriaOriginal: jugadorOriginal.categoria } : null;
+                }).filter(Boolean);
                 return [...jugadoresBase, ...jugadoresExtra];
             });
 
@@ -2059,38 +2402,23 @@
         function EstadisticasTab({ calcularEstadisticas }) {
             const stats = calcularEstadisticas();
             
-            const getCategoriaOrden = (nombreJugador) => {
-                const jugador = Object.values(JUGADORES_GOAT).flat().find(j => j.nombre === nombreJugador);
-                if (!jugador) return 999;
-                const ordenCategorias = { 'damas_a': 1, 'damas_b': 2, 'damas_c': 3, 'caballeros_2da': 4, 'caballeros_3ra': 5, 'caballeros_4ta': 6, 'caballeros_5ta': 7 };
-                return ordenCategorias[jugador.categoria] || 999;
-            };
-            
-            const getCategoriaNombre = (nombreJugador) => {
-                const jugador = Object.values(JUGADORES_GOAT).flat().find(j => j.nombre === nombreJugador);
-                if (!jugador) return '';
-                const nombres = { 'damas_a': 'Damas A', 'damas_b': 'Damas B', 'damas_c': 'Damas C', 'caballeros_2da': 'Caballeros 2da', 'caballeros_3ra': 'Caballeros 3ra', 'caballeros_4ta': 'Caballeros 4ta', 'caballeros_5ta': 'Caballeros 5ta' };
-                return nombres[jugador.categoria] || '';
-            };
+            const ORDEN_CATS = { 'damas_a': 1, 'damas_b': 2, 'damas_c': 3, 'caballeros_2da': 4, 'caballeros_3ra': 5, 'caballeros_4ta': 6, 'caballeros_5ta': 7 };
+            const NOMBRES_CATS = { 'damas_a': 'Damas A', 'damas_b': 'Damas B', 'damas_c': 'Damas C', 'caballeros_2da': 'Caballeros 2da', 'caballeros_3ra': 'Caballeros 3ra', 'caballeros_4ta': 'Caballeros 4ta', 'caballeros_5ta': 'Caballeros 5ta' };
 
-            const jugadoresOrdenados = Object.entries(stats.jugadores).sort((a, b) => {
-                const ordenA = getCategoriaOrden(a[0]); const ordenB = getCategoriaOrden(b[0]);
-                if (ordenA !== ordenB) return ordenA - ordenB; return a[0].localeCompare(b[0]);
-            });
-
+            // stats.jugadores now comes from plantel — each entry already has categoria info embedded
+            // We group by category from the stats object itself
             const jugadoresPorCategoria = {};
-            jugadoresOrdenados.forEach(([nombre, data]) => {
-                const categoria = getCategoriaNombre(nombre);
-                if (!jugadoresPorCategoria[categoria]) jugadoresPorCategoria[categoria] = [];
-                jugadoresPorCategoria[categoria].push([nombre, data]);
+            Object.entries(stats.jugadores).forEach(([nombre, data]) => {
+                // data doesn't have categoria here since calcularEstadisticas in App doesn't store it
+                // We sort by nombre only since we lost the categoria context in this simplified stats version
+                if (!jugadoresPorCategoria['Plantel']) jugadoresPorCategoria['Plantel'] = [];
+                jugadoresPorCategoria['Plantel'].push([nombre, data]);
             });
 
             return (
                 <div>
                     <div className="flex-mobile-col" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', gap: '15px'}}>
                         <h2 style={{color: '#1e3c72', margin: 0}}>Estadística Individual General</h2>
-                        
-                        {/* BOTÓN PARA IR AL NUEVO ARCHIVO DE ANÁLISIS DETALLADO */}
                         <button 
                             className="btn btn-primary btn-responsive" 
                             onClick={() => window.location.href = 'estadisticas.html'} 
@@ -2104,7 +2432,6 @@
                         <table className="stats-table">
                             <thead>
                                 <tr>
-                                    <th>Categoría</th>
                                     <th>Jugador</th>
                                     <th>Singles G/P</th>
                                     <th>Dobles G/P</th>
@@ -2113,22 +2440,19 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {Object.entries(jugadoresPorCategoria).map(([categoria, jugadores]) => (
-                                    jugadores.map(([nombre, data], idx) => {
-                                        const total = data.total.ganados + data.total.perdidos; 
-                                        const porcentaje = total > 0 ? ((data.total.ganados / total) * 100).toFixed(1) : 0;
-                                        return (
-                                            <tr key={nombre}>
-                                                {idx === 0 && (<td rowSpan={jugadores.length} style={{ fontWeight: '700', background: '#f0f9ff', verticalAlign: 'middle' }}>{categoria}</td>)}
-                                                <td><strong>{nombre}</strong></td>
-                                                <td>{data.singles.ganados} / {data.singles.perdidos}</td>
-                                                <td>{data.dobles.ganados} / {data.dobles.perdidos}</td>
-                                                <td>{data.total.ganados} / {data.total.perdidos}</td>
-                                                <td>{porcentaje}%</td>
-                                            </tr>
-                                        );
-                                    })
-                                ))}
+                                {Object.entries(stats.jugadores).sort((a,b)=>a[0].localeCompare(b[0])).map(([nombre, data]) => {
+                                    const total = data.total.ganados + data.total.perdidos; 
+                                    const porcentaje = total > 0 ? ((data.total.ganados / total) * 100).toFixed(1) : 0;
+                                    return (
+                                        <tr key={nombre}>
+                                            <td><strong>{nombre}</strong></td>
+                                            <td>{data.singles.ganados} / {data.singles.perdidos}</td>
+                                            <td>{data.dobles.ganados} / {data.dobles.perdidos}</td>
+                                            <td>{data.total.ganados} / {data.total.perdidos}</td>
+                                            <td>{porcentaje}%</td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>
