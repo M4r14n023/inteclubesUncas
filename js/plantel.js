@@ -1,12 +1,13 @@
+// js/plantel.js
 window.AppPlantel = {
-    renderPlantelSlots: (plantelActual, onSlotClick, onEdit, onDelete) => {
-        // Tomamos las constantes desde window, ya que se cargaron antes
+    renderPlantelSlots: function(plantelActual, onSlotClick, onEdit, onDelete) {
+        // Traemos las constantes desde la ventana global
         const { ORDEN_CATS, NOMBRES_CATS, MAX_POR_CATEGORIA } = window.AppConstants;
         
         return (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
                 {ORDEN_CATS.map(catKey => {
-                    const jugadoresEnCat = plantelActual && plantelActual[catKey] ? plantelActual[catKey] : [];
+                    const jugadoresEnCat = (plantelActual && plantelActual[catKey]) ? plantelActual[catKey] : [];
                     const maxCupos = MAX_POR_CATEGORIA[catKey] || 5;
                     const slots = Array.from({ length: maxCupos });
 
@@ -55,4 +56,3 @@ window.AppPlantel = {
         );
     }
 };
-window.AppPlantel = { renderPlantelSlots };

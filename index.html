@@ -228,12 +228,13 @@
 
 <script src="js/constants.js"></script>
 <script src="js/logic.js"></script>
-<script src="js/plantel.js"></script>
+
+<script type="text/babel" src="js/plantel.js"></script>
 
 <script type="text/babel">
     const { useState, useEffect, useRef } = React;
 
-    // 3. Tomamos las variables del objeto global window
+    // Tomamos las variables del objeto global window
     const { 
         ID_PROYECTO, 
         CATEGORIAS_DISPONIBLES, 
@@ -245,6 +246,8 @@
 
     const { calcularTablaZona } = window.AppLogic;
     const { renderPlantelSlots } = window.AppPlantel;
+
+    // ... aquí sigue tu código (function SetupWizard, etc.) ...
 
         // Configuración de Firebase - Hub Universitario
         const firebaseConfig = {
