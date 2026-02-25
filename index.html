@@ -1659,68 +1659,141 @@
             );
         }
 
-        // ── Modal para generar cruces entre zonas ──
-        function AsignarFechasModal({ zonasConfig, equipos, onClose, onGenerar }) {
+        // ── Modal para asignar cruces de zona a fechas ──
+        // Detecta la zona de mi equipo, genera los 4 cruces vs rivales de esa zona,
+        // y permite al usuario asignar cada cruce a una Fecha (1-4).
+        function AsignarFechasModal({ zonasConfig, equipos, onClose, onAsignar }) {
+            const miEquipoNombre = (equipos.find(e => e.esGoat) || { nombre: 'Mi Equipo' }).nombre;
             const zona1 = (zonasConfig.zona1 || []).filter(Boolean);
             const zona2 = (zonasConfig.zona2 || []).filter(Boolean);
 
-            // Cruces inter-zona: cada equipo de zona1 vs cada equipo de zona2
-            const crucesIniciales = [];
-            zona1.forEach(eq1 => {
-                zona2.forEach(eq2 => {
-                    crucesIniciales.push({ equipo1: eq1, equipo2: eq2, tipo: 'Fase de Grupos', resultado1: '', resultado2: '' });
-                });
-            });
+            // Determinar en qué zona está mi equipo
+            const miZona = zona1.includes(miEquipoNombre) ? zona1 : zona2.includes(miEquipoNombre) ? zona2 : zona1;
+            const otraZona = miZona === zona1 ? zona2 : zona1;
+            const miZonaNum = miZona === zona1 ? 1 : 2;
 
-            const [cruces, setCruces] = useState(crucesIniciales);
+            // Los 4 rivales de mi zona
+            const rivalesMiZona = miZona.filter(eq => eq !== miEquipoNombre);
 
-            const guardar = () => {
-                if (confirm(`Se generarán ${cruces.length} cruces entre zonas. ¿Continuar?`)) {
-                    onGenerar(cruces);
-                }
+            // Estado: para cada rival, qué fecha le asignamos ('' = sin asignar)
+            const [asignaciones, setAsignaciones] = useState(
+                Object.fromEntries(rivalesMiZona.map(r => [r, '']))
+            );
+
+            const fechasAsignadas = Object.values(asignaciones).filter(v => v !== '');
+            const todasAsignadas = rivalesMiZona.every(r => asignaciones[r] !== '');
+            const hayDuplicados = new Set(fechasAsignadas).size < fechasAsignadas.length;
+
+            const setAsignacion = (rival, fecha) => {
+                setAsignaciones(prev => ({ ...prev, [rival]: fecha }));
             };
+
+            const confirmar = () => {
+                if (!todasAsignadas) { alert('Asigná una fecha a cada cruce antes de confirmar.'); return; }
+                if (hayDuplicados) { alert('Hay dos cruces asignados a la misma fecha. Cada cruce debe ir a una fecha distinta.'); return; }
+                onAsignar(asignaciones); // { 'Rival A': '1', 'Rival B': '2', ... }
+            };
+
+            const fechasOpciones = [1, 2, 3, 4];
+            // Fechas ya usadas por otros rivales (para deshabilitar opciones duplicadas)
+            const fechasEnUso = (rivalActual) =>
+                Object.entries(asignaciones)
+                    .filter(([r, v]) => r !== rivalActual && v !== '')
+                    .map(([, v]) => v);
 
             return (
                 <div className="modal" onClick={onClose}>
-                    <div className="modal-content" onClick={e => e.stopPropagation()} style={{maxWidth:'560px', padding:0, overflow:'hidden'}}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()} style={{maxWidth:'520px', padding:0, overflow:'hidden'}}>
+
+                        {/* Header */}
                         <div style={{background:'linear-gradient(135deg,#1a1a1a,#2d2416)', padding:'20px 24px', color:'white'}}>
                             <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
                                 <div>
-                                    <h2 style={{margin:0, color:'#d4af37', fontSize:'18px'}}>🏆 Generar Cruces de Zonas</h2>
-                                    <p style={{margin:'4px 0 0', fontSize:'13px', color:'#c5a572'}}>{cruces.length} cruces entre Zona 1 y Zona 2</p>
+                                    <h2 style={{margin:0, color:'#d4af37', fontSize:'18px'}}>📅 Asignar Cruces a Fechas</h2>
+                                    <p style={{margin:'4px 0 0', fontSize:'13px', color:'#c5a572'}}>
+                                        {miEquipoNombre} · Zona {miZonaNum} · {rivalesMiZona.length} cruces
+                                    </p>
                                 </div>
                                 <button onClick={onClose} style={{background:'rgba(255,255,255,0.15)', border:'none', color:'white', borderRadius:'8px', padding:'6px 12px', cursor:'pointer', fontSize:'16px'}}>✕</button>
                             </div>
                         </div>
 
-                        <div style={{padding:'20px 24px', maxHeight:'55vh', overflowY:'auto'}}>
-                            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px', marginBottom:'16px'}}>
-                                <div style={{background:'#eff6ff', padding:'12px', borderRadius:'8px', border:'1px solid #bfdbfe'}}>
-                                    <p style={{fontWeight:'700', color:'#1d4ed8', fontSize:'12px', marginBottom:'6px', textTransform:'uppercase'}}>Zona 1</p>
-                                    {zona1.map(eq => <p key={eq} style={{margin:'3px 0', fontSize:'13px', fontWeight:'600', color:'#1e293b'}}>{eq}</p>)}
-                                </div>
-                                <div style={{background:'#f5f3ff', padding:'12px', borderRadius:'8px', border:'1px solid #ddd6fe'}}>
-                                    <p style={{fontWeight:'700', color:'#7c3aed', fontSize:'12px', marginBottom:'6px', textTransform:'uppercase'}}>Zona 2</p>
-                                    {zona2.map(eq => <p key={eq} style={{margin:'3px 0', fontSize:'13px', fontWeight:'600', color:'#1e293b'}}>{eq}</p>)}
-                                </div>
-                            </div>
+                        {/* Body */}
+                        <div style={{padding:'20px 24px'}}>
+                            <p style={{fontSize:'13px', color:'#64748b', marginBottom:'20px', lineHeight:'1.5'}}>
+                                Cada fila es un cruce de <strong>{miEquipoNombre}</strong> contra un rival de su zona.<br/>
+                                Asigná a qué <strong>Fecha</strong> corresponde cada partido.
+                            </p>
 
-                            <div style={{background:'#f8fafc', borderRadius:'8px', padding:'12px', border:'1px solid #e2e8f0'}}>
-                                <p style={{fontWeight:'700', color:'#475569', fontSize:'12px', marginBottom:'10px', textTransform:'uppercase'}}>Cruces generados</p>
-                                {cruces.map((c, i) => (
-                                    <div key={i} style={{display:'flex', alignItems:'center', gap:'8px', padding:'8px 10px', background:'white', borderRadius:'6px', marginBottom:'6px', border:'1px solid #e2e8f0', fontSize:'13px'}}>
-                                        <span style={{flex:1, fontWeight:'600', textAlign:'right', color:'#1d4ed8'}}>{c.equipo1}</span>
-                                        <span style={{background:'#1e3c72', color:'white', padding:'2px 8px', borderRadius:'4px', fontWeight:'700', fontSize:'11px', flexShrink:0}}>VS</span>
-                                        <span style={{flex:1, fontWeight:'600', color:'#7c3aed'}}>{c.equipo2}</span>
+                            {rivalesMiZona.map(rival => {
+                                const val = asignaciones[rival];
+                                const usadas = fechasEnUso(rival);
+                                return (
+                                    <div key={rival} style={{
+                                        display:'flex', alignItems:'center', gap:'12px',
+                                        padding:'12px 14px', marginBottom:'10px',
+                                        borderRadius:'10px', border:`2px solid ${val ? '#10b981' : '#e2e8f0'}`,
+                                        background: val ? '#f0fdf4' : '#f8fafc',
+                                        transition:'0.2s'
+                                    }}>
+                                        {/* Cruce */}
+                                        <div style={{flex:1}}>
+                                            <span style={{fontWeight:'700', color:'#1e3c72', fontSize:'14px'}}>{miEquipoNombre}</span>
+                                            <span style={{margin:'0 8px', color:'#94a3b8', fontWeight:'700', fontSize:'12px'}}>VS</span>
+                                            <span style={{fontWeight:'700', color:'#475569', fontSize:'14px'}}>{rival}</span>
+                                        </div>
+                                        {/* Selector de fecha */}
+                                        <select
+                                            value={val}
+                                            onChange={e => setAsignacion(rival, e.target.value)}
+                                            style={{
+                                                padding:'8px 12px', border:`2px solid ${val ? '#10b981' : '#e2e8f0'}`,
+                                                borderRadius:'8px', fontSize:'14px', fontWeight:'700',
+                                                background: val ? '#dcfce7' : 'white', color: val ? '#166534' : '#475569',
+                                                cursor:'pointer', minWidth:'120px'
+                                            }}>
+                                            <option value="">— Fecha —</option>
+                                            {fechasOpciones.map(f => (
+                                                <option key={f} value={String(f)}
+                                                    disabled={usadas.includes(String(f))}>
+                                                    Fecha {f}{usadas.includes(String(f)) ? ' (ocupada)' : ''}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        {val && <span style={{color:'#10b981', fontSize:'18px', fontWeight:'700'}}>✓</span>}
                                     </div>
-                                ))}
+                                );
+                            })}
+
+                            {/* Resumen de estado */}
+                            <div style={{
+                                marginTop:'16px', padding:'10px 14px', borderRadius:'8px',
+                                background: todasAsignadas && !hayDuplicados ? '#dcfce7' : '#fff7ed',
+                                border:`1px solid ${todasAsignadas && !hayDuplicados ? '#86efac' : '#fed7aa'}`,
+                                fontSize:'13px', fontWeight:'600',
+                                color: todasAsignadas && !hayDuplicados ? '#166534' : '#92400e'
+                            }}>
+                                {todasAsignadas && !hayDuplicados
+                                    ? '✅ Todo asignado. Podés confirmar.'
+                                    : hayDuplicados
+                                    ? '⚠️ Dos cruces tienen la misma fecha. Revisá.'
+                                    : `⏳ Falta asignar ${rivalesMiZona.length - fechasAsignadas.length} cruce${rivalesMiZona.length - fechasAsignadas.length > 1 ? 's' : ''}.`
+                                }
                             </div>
                         </div>
 
+                        {/* Footer */}
                         <div style={{padding:'16px 24px', borderTop:'1px solid #e2e8f0', display:'flex', gap:'10px', justifyContent:'flex-end', background:'#f8fafc'}}>
                             <button onClick={onClose} style={{padding:'9px 20px', background:'#f1f5f9', color:'#475569', border:'none', borderRadius:'8px', cursor:'pointer', fontWeight:'600', fontSize:'14px'}}>Cancelar</button>
-                            <button onClick={guardar} style={{padding:'9px 24px', background:'linear-gradient(135deg,#10b981,#059669)', color:'white', border:'none', borderRadius:'8px', cursor:'pointer', fontWeight:'700', fontSize:'14px'}}>
-                                ✅ Confirmar y Guardar
+                            <button onClick={confirmar}
+                                disabled={!todasAsignadas || hayDuplicados}
+                                style={{
+                                    padding:'9px 24px', border:'none', borderRadius:'8px', cursor: todasAsignadas && !hayDuplicados ? 'pointer' : 'not-allowed',
+                                    fontWeight:'700', fontSize:'14px', transition:'0.2s',
+                                    background: todasAsignadas && !hayDuplicados ? 'linear-gradient(135deg,#10b981,#059669)' : '#e2e8f0',
+                                    color: todasAsignadas && !hayDuplicados ? 'white' : '#94a3b8'
+                                }}>
+                                ✅ Confirmar Fechas
                             </button>
                         </div>
                     </div>
@@ -1958,10 +2031,36 @@
                                         return !todosAsignados.has(eq.nombre);
                                     });
 
-                                    const setZona = (zona, idx, valor) => {
-                                        const n = { zona1: [...zona1], zona2: [...zona2] };
-                                        n[zona][idx] = valor;
-                                        setZonasConfig(n);
+                                    const setZona = (zonaKey, idx, valor) => {
+                                        const nuevaZ1 = [...zona1];
+                                        const nuevaZ2 = [...zona2];
+                                        if (zonaKey === 'zona1') nuevaZ1[idx] = valor;
+                                        else nuevaZ2[idx] = valor;
+
+                                        // Auto-completar la otra zona con los equipos restantes
+                                        const asignadosNuevos = new Set([...nuevaZ1.filter(Boolean), ...nuevaZ2.filter(Boolean)]);
+                                        const restantes = equipos.map(e => e.nombre).filter(n => !asignadosNuevos.has(n));
+
+                                        // Si zona1 ya tiene 5, llenar zona2 con los restantes
+                                        if (nuevaZ1.filter(Boolean).length === 5 && nuevaZ2.filter(Boolean).length < 5) {
+                                            let ri = 0;
+                                            for (let i = 0; i < 5; i++) {
+                                                if (!nuevaZ2[i] && ri < restantes.length) {
+                                                    nuevaZ2[i] = restantes[ri++];
+                                                }
+                                            }
+                                        }
+                                        // Si zona2 ya tiene 5, llenar zona1 con los restantes
+                                        if (nuevaZ2.filter(Boolean).length === 5 && nuevaZ1.filter(Boolean).length < 5) {
+                                            let ri = 0;
+                                            for (let i = 0; i < 5; i++) {
+                                                if (!nuevaZ1[i] && ri < restantes.length) {
+                                                    nuevaZ1[i] = restantes[ri++];
+                                                }
+                                            }
+                                        }
+
+                                        setZonasConfig({ zona1: nuevaZ1, zona2: nuevaZ2 });
                                     };
 
                                     const z1completa = zona1.filter(Boolean).length === 5;
@@ -2085,13 +2184,16 @@
                     )}
 
                     {showAsignarFechasModal && (
-                        <AsignarFechasModal zonasConfig={zonasConfig} equipos={equipos} onClose={() => setShowAsignarFechasModal(false)}
-                            onGenerar={(crucesGenerados) => {
-                                const datosActuales = localStorage.getItem(ID_PROYECTO + '_datos');
-                                const datos = datosActuales ? JSON.parse(datosActuales) : {};
-                                datos.crucesFinales = crucesGenerados; localStorage.setItem(ID_PROYECTO + '_datos', JSON.stringify(datos));
-                                if (window.actualizarCrucesFinales) window.actualizarCrucesFinales(crucesGenerados);
-                                setShowAsignarFechasModal(false); alert('Cruces generados exitosamente.');
+                        <AsignarFechasModal
+                            zonasConfig={zonasConfig}
+                            equipos={equipos}
+                            onClose={() => setShowAsignarFechasModal(false)}
+                            onAsignar={(asignaciones) => {
+                                // asignaciones = { 'Rival A': '1', 'Rival B': '2', ... }
+                                Object.entries(asignaciones).forEach(([rival, numFecha]) => {
+                                    agregarFecha(parseInt(numFecha), rival);
+                                });
+                                setShowAsignarFechasModal(false);
                             }}
                         />
                     )}
