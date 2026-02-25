@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#1a1a1a">
-    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Análisis de Rendimiento</title>
     <link rel="icon" type="image/x-icon" href="favicon.ico">
@@ -264,28 +264,14 @@
 <body>
     <div id="root"></div>
 
-<script src="js/constants.js"></script>
-    <script src="js/logic.js"></script>
-
     <script type="text/babel">
         const { useState, useEffect, useMemo } = React;
-        
-        // Obtenemos todo del objeto global window
-        const { 
-            ID_PROYECTO, 
-            CATEGORIAS_DISPONIBLES, 
-            ORDEN_CATS, 
-            NOMBRES_CATS, 
-            MAX_POR_CATEGORIA 
-        } = window.AppConstants;
-
-        const { calcularTablaZona } = window.AppLogic || {};
 
         // ============================================================
         //  ⚙️  MISMO ID_PROYECTO que index.html — NO CAMBIAR AQUÍ
         //  Este archivo lee automáticamente desde el mismo nodo Firebase.
         // ============================================================
-        //const ID_PROYECTO = 'nombre_del_equipo';
+        const ID_PROYECTO = 'nombre_del_equipo';
         // ============================================================
 
         const firebaseConfig = {
@@ -386,25 +372,58 @@
         }
 
         // ── Motor de estadísticas ──
-       // Reemplaza la función calcularEstadisticas dentro de estadisticas.html
-function calcularEstadisticas(fechas, resultados, plantel) {
-    const stats = { jugadores: {}, parejas: {} };
-    // Usamos el plantel que viene de Firebase directamente
-    const todosJugadores = Object.values(plantel).flat();
+        function calcularEstadisticas(fechas, resultados, plantel) {
+            const stats = { jugadores: {}, parejas: {} };
+            const todosJugadores = Object.values(plantel).flat();
 
-    todosJugadores.forEach(jugador => {
-        stats.jugadores[jugador.nombre] = {
-            categoria: jugador.categoria,
-            capitan: jugador.capitan || false,
-            singles: { ganados: 0, perdidos: 0 },
-            dobles:  { ganados: 0, perdidos: 0 },
-            total:   { ganados: 0, perdidos: 0, historial: [] }
-        };
-    });
+            todosJugadores.forEach(jugador => {
+                stats.jugadores[jugador.nombre] = {
+                    categoria: jugador.categoria,
+                    capitan: jugador.capitan || false,
+                    singles: { ganados: 0, perdidos: 0 },
+                    dobles:  { ganados: 0, perdidos: 0 },
+                    total:   { ganados: 0, perdidos: 0, historial: [] }
+                };
+            });
 
-    // ... (la lógica de recorrido de fechas se mantiene igual que en tu archivo original)
-    // Pero asegúrate de usar NOMBRES_CATS[jugador.categoria] para mostrar los textos
-}
+            fechas.forEach((fecha, fechaIdx) => {
+                if (!fecha || !fecha.partidos) return;
+                fecha.partidos.forEach(partido => {
+                    if (!partido.jugadores || partido.jugadores.length === 0) return;
+                    const key    = `${fechaIdx}-${partido.id}`;
+                    const ganado = resultados[key] || false;
+                    const esSingle = partido.numJugadores === 1;
+
+                    partido.jugadores.forEach(jugador => {
+                        if (!stats.jugadores[jugador]) return;
+                        const companeros = partido.jugadores.filter(j => j !== jugador);
+                        const compTexto  = companeros.length > 0 ? companeros.join(' / ') : 'Jugó Single';
+
+                        if (esSingle) stats.jugadores[jugador].singles[ganado ? 'ganados' : 'perdidos']++;
+                        else          stats.jugadores[jugador].dobles[ganado ? 'ganados' : 'perdidos']++;
+
+                        stats.jugadores[jugador].total[ganado ? 'ganados' : 'perdidos']++;
+                        stats.jugadores[jugador].total.historial.push({
+                            fechaNum: fecha.numero,
+                            rival: fecha.rival,
+                            tipo: partido.tipo,
+                            companero: compTexto,
+                            resultado: ganado
+                        });
+                    });
+
+                    if (!esSingle && partido.jugadores.length === 2) {
+                        const parejaKey = [...partido.jugadores].sort().join(' - ');
+                        if (!stats.parejas[parejaKey]) stats.parejas[parejaKey] = { ganados: 0, perdidos: 0, fechas: [], tiposJugados: [] };
+                        stats.parejas[parejaKey][ganado ? 'ganados' : 'perdidos']++;
+                        stats.parejas[parejaKey].fechas.push({ fecha: fecha.numero, rival: fecha.rival, tipo: partido.tipo, resultado: ganado });
+                        if (!stats.parejas[parejaKey].tiposJugados.includes(partido.tipo))
+                            stats.parejas[parejaKey].tiposJugados.push(partido.tipo);
+                    }
+                });
+            });
+            return stats;
+        }
 
         // ── Vista: Ficha Individual ──
         function TabIndividual({ stats }) {
