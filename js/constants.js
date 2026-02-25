@@ -14,4 +14,11 @@ export const MAX_POR_CATEGORIA = Object.fromEntries(CATEGORIAS_DISPONIBLES.map(c
 export const NOMBRES_CATS = Object.fromEntries(CATEGORIAS_DISPONIBLES.map(c => [c.value, c.label]));
 export const ORDEN_CATS = CATEGORIAS_DISPONIBLES.map(c => c.value);
 export const EQUIPOS_POR_DEFECTO = [ 'Uncas', 'El Rojo', 'Ferro', 'Tercer Tiempo', 'Tres Arroyos', 'Head', 'La Cardoneta', 'La Sede', 'Tiro Federal' ];
-window.AppConstants = { ID_PROYECTO, CATEGORIAS_DISPONIBLES, ORDEN_CATS, NOMBRES_CATS, MAX_POR_CATEGORIA };
+window.AppConstants = { 
+    ID_PROYECTO, 
+    CATEGORIAS_DISPONIBLES, 
+    MAX_POR_CATEGORIA, 
+    NOMBRES_CATS, 
+    ORDEN_CATS, 
+    EQUIPOS_POR_DEFECTO 
+};

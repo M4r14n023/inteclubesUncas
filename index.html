@@ -232,12 +232,13 @@
         CATEGORIAS_DISPONIBLES, 
         ORDEN_CATS, 
         NOMBRES_CATS, 
-        MAX_POR_CATEGORIA 
+        MAX_POR_CATEGORIA,
+        EQUIPOS_POR_DEFECTO 
     } from './js/constants.js';
     import { calcularTablaZona } from './js/logic.js';
     import { renderPlantelSlots } from './js/plantel.js';
-        const { useState, useEffect, useRef } = React;
 
+    const { useState, useEffect, useRef } = React;
         // Configuración de Firebase - Hub Universitario
         const firebaseConfig = {
             apiKey: "AIzaSyDWut5pII90tdvaB_AwkvdQ6Oq3TgM5wKY",

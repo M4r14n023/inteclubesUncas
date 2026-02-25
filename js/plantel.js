@@ -56,3 +56,4 @@ export const renderPlantelSlots = (plantelActual, onSlotClick, onEdit, onDelete)
         </div>
     );
 };
+window.AppPlantel = { renderPlantelSlots };
