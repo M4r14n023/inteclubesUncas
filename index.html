@@ -1033,8 +1033,8 @@
                             />
                         )}
                         {activeTab === 'resultados' && (
-                            <ResultadosTab 
-                                userRole={userRole} fechas={fechas} resultados={resultados} toggleResultado={toggleResultado} zonasConfig={zonasConfig} 
+                        <ResultadosTab 
+                                userRole={userRole} equipos={equipos} fechas={fechas} resultados={resultados} toggleResultado={toggleResultado} zonasConfig={zonasConfig} 
                                 crucesFinales={crucesFinales} playoffAvances={playoffAvances} setPlayoffAvances={setPlayoffAvances} 
                             />
                         )}
@@ -2157,33 +2157,40 @@
                             const z2ok = zona2.filter(Boolean).length === 5;
                             if (!z1ok || !z2ok) return null;
 
-                            // Rivales posibles = todos excepto mi equipo
-                            const rivales = equipos.filter(eq => !eq.esGoat);
-                            // Ya usados en otras fechas
-                            const rivalesUsados = fechas.filter(Boolean).map(f => f.rival);
-
                             return (
                                 <div style={{marginTop:'24px', padding:'20px', background:'#f8fafc', borderRadius:'12px', border:'1px solid #e2e8f0'}}>
-                                    <h3 style={{color:'#1e3c72', marginBottom:'4px'}}>📅 Configurar Fechas</h3>
-                                    <p style={{color:'#64748b', fontSize:'13px', marginBottom:'16px'}}>Asigná el rival de cada fecha. Solo aparecen rivales no asignados aún.</p>
-                                    {[1,2,3,4].map(numFecha => {
+                                    <h3 style={{color:'#1e3c72', marginBottom:'4px'}}>📅 Fechas Asignadas</h3>
+                                    <p style={{color:'#64748b', fontSize:'13px', marginBottom:'16px'}}>Estos son los cruces generados para tu equipo desde el asignador automático.</p>
+                                    {[1, 2, 3, 4].map(numFecha => {
                                         const fechaActual = fechas[numFecha-1];
                                         const rivalActual = fechaActual?.rival || '';
-                                        const disponibles = rivales.filter(eq => eq.nombre === rivalActual || !rivalesUsados.includes(eq.nombre));
+                                        
                                         return (
                                             <div key={numFecha} style={{display:'flex', alignItems:'center', gap:'12px', marginBottom:'12px', flexWrap:'wrap'}}>
                                                 <span style={{minWidth:'80px', fontWeight:'700', color:'#1e3c72', fontSize:'14px'}}>Fecha {numFecha}</span>
-                                                <select value={rivalActual} onChange={e => { if(e.target.value) agregarFecha(numFecha, e.target.value); }}
-                                                    style={{flex:1, padding:'9px 12px', border:`2px solid ${rivalActual?'#10b981':'#e2e8f0'}`, borderRadius:'8px', fontSize:'14px', background: rivalActual?'#f0fdf4':'white'}}>
-                                                    <option value="">— Seleccionar rival —</option>
-                                                    {disponibles.map(eq => <option key={eq.nombre} value={eq.nombre}>{eq.nombre}</option>)}
-                                                </select>
+                                                
+                                                <div style={{
+                                                    flex: 1, 
+                                                    padding: '9px 12px', 
+                                                    border: `2px solid ${rivalActual ? '#10b981' : '#e2e8f0'}`, 
+                                                    borderRadius: '8px', 
+                                                    fontSize: '14px', 
+                                                    background: rivalActual ? '#f0fdf4' : '#f8fafc',
+                                                    color: rivalActual ? '#166534' : '#94a3b8',
+                                                    fontWeight: rivalActual ? '700' : '400'
+                                                }}>
+                                                    {rivalActual ? `vs ${rivalActual}` : '— Pendiente de asignación —'}
+                                                </div>
+                                                
                                                 {rivalActual && <span style={{color:'#10b981', fontWeight:'700', fontSize:'16px'}}>✓</span>}
                                             </div>
                                         );
                                     })}
+                                    
                                     {fechas.filter(Boolean).length === 4 && (
-                                        <div className="success-message" style={{marginTop:'8px'}}>✓ Todas las fechas configuradas. Ir a "Fechas" para armar los equipos.</div>
+                                        <div className="success-message" style={{marginTop:'8px'}}>
+                                            ✓ Todas las fechas configuradas. Ir a "Fechas" para armar las convocatorias.
+                                        </div>
                                     )}
                                 </div>
                             );
@@ -2211,7 +2218,6 @@
                             equipos={equipos}
                             onClose={() => setShowAsignarFechasModal(false)}
                             onAsignar={(asignaciones) => {
-                                // asignaciones = { 'Rival A': '1', 'Rival B': '2', ... }
                                 Object.entries(asignaciones).forEach(([rival, numFecha]) => {
                                     agregarFecha(parseInt(numFecha), rival);
                                 });
@@ -2544,7 +2550,7 @@
             );
         }
 
-        function ResultadosTab({ userRole, fechas, resultados, toggleResultado, zonasConfig, crucesFinales, playoffAvances, setPlayoffAvances }) {
+        function ResultadosTab({ userRole, equipos, fechas, resultados, toggleResultado, zonasConfig, crucesFinales, playoffAvances, setPlayoffAvances }) {
             const [showPlayOffModal, setShowPlayOffModal] = useState(false);
             
             // Cuando la pestaña se carga, por defecto dejamos todas las fechas cerradas
