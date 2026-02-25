@@ -714,7 +714,7 @@
                     if (datosGuardados) {
                         try {
                             const datos = JSON.parse(datosGuardados);
-                            setNumEquipos(datos.numEquipos || 10); setEquipos(datos.equipos || []); setBaseEquipos(datos.baseEquipos || EQUIPOS_POR_DEFECTO); setFechas(datos.fechas || []); setResultados(datos.resultados || {}); setPosiciones(datos.posiciones || {}); setCrucesFinales(datos.crucesFinales || []); setZonasConfig(datos.zonasConfig || { zona1: [], zona2: [] }); setPlayoffAvances(datos.playoffAvances || {});
+                            setNumEquipos(datos.numEquipos || 10); setEquipos(datos.equipos || []); setBaseEquipos(datos.baseEquipos || EQUIPOS_POR_DEFECTO); setFechas(datos.fechas || []); setResultados(datos.resultados || {}); setPosiciones(datos.posiciones || {}); setCrucesFinales(datos.crucesFinales || []); setZonasConfig({ zona1: (datos.zonasConfig?.zona1 || []), zona2: (datos.zonasConfig?.zona2 || []) }); setPlayoffAvances(datos.playoffAvances || {});
                         } catch (e) { console.error('Error al cargar datos:', e); }
                     }
 
@@ -723,7 +723,7 @@
                         const datosFirebase = await cargarDesdeFirebase();
                         if (datosFirebase) {
                             isReceivingData.current = true;
-                            setNumEquipos(datosFirebase.numEquipos || 10); setEquipos(datosFirebase.equipos || []); setBaseEquipos(datosFirebase.baseEquipos || EQUIPOS_POR_DEFECTO); setFechas(datosFirebase.fechas || []); setResultados(datosFirebase.resultados || {}); setPosiciones(datosFirebase.posiciones || {}); setCrucesFinales(datosFirebase.crucesFinales || []); setZonasConfig(datosFirebase.zonasConfig || { zona1: [], zona2: [] }); setPlayoffAvances(datosFirebase.playoffAvances || {});
+                            setNumEquipos(datosFirebase.numEquipos || 10); setEquipos(datosFirebase.equipos || []); setBaseEquipos(datosFirebase.baseEquipos || EQUIPOS_POR_DEFECTO); setFechas(datosFirebase.fechas || []); setResultados(datosFirebase.resultados || {}); setPosiciones(datosFirebase.posiciones || {}); setCrucesFinales(datosFirebase.crucesFinales || []); setZonasConfig({ zona1: (datosFirebase.zonasConfig?.zona1 || []), zona2: (datosFirebase.zonasConfig?.zona2 || []) }); setPlayoffAvances(datosFirebase.playoffAvances || {});
                             setLastSync(datosFirebase.ultimaActualizacion); setSyncStatus('synced');
                             localStorage.setItem(ID_PROYECTO + '_datos', JSON.stringify(datosFirebase));
                             setTimeout(() => { isReceivingData.current = false; }, 1000);
@@ -736,7 +736,7 @@
                 const unsubscribe = escucharCambiosFirebase((datos) => {
                     if (datos && datos.ultimaActualizacion !== lastSync) {
                         isReceivingData.current = true;
-                        setNumEquipos(datos.numEquipos || 10); setEquipos(datos.equipos || []); setBaseEquipos(datos.baseEquipos || EQUIPOS_POR_DEFECTO); setFechas(datos.fechas || []); setResultados(datos.resultados || {}); setPosiciones(datos.posiciones || {}); setCrucesFinales(datos.crucesFinales || []); setZonasConfig(datos.zonasConfig || { zona1: [], zona2: [] }); setPlayoffAvances(datos.playoffAvances || {});
+                        setNumEquipos(datos.numEquipos || 10); setEquipos(datos.equipos || []); setBaseEquipos(datos.baseEquipos || EQUIPOS_POR_DEFECTO); setFechas(datos.fechas || []); setResultados(datos.resultados || {}); setPosiciones(datos.posiciones || {}); setCrucesFinales(datos.crucesFinales || []); setZonasConfig({ zona1: (datos.zonasConfig?.zona1 || []), zona2: (datos.zonasConfig?.zona2 || []) }); setPlayoffAvances(datos.playoffAvances || {});
                         setLastSync(datos.ultimaActualizacion); setSyncStatus('synced');
                         localStorage.setItem(ID_PROYECTO + '_datos', JSON.stringify(datos));
                         setTimeout(() => { isReceivingData.current = false; }, 1000);
@@ -1189,7 +1189,7 @@
                                         setSyncStatus('syncing');
                                         const datosFirebase = await cargarDesdeFirebase();
                                         if (datosFirebase) {
-                                            setNumEquipos(datosFirebase.numEquipos || 10); setEquipos(datosFirebase.equipos || []); setBaseEquipos(datosFirebase.baseEquipos || EQUIPOS_POR_DEFECTO); setFechas(datosFirebase.fechas || []); setResultados(datosFirebase.resultados || {}); setPosiciones(datosFirebase.posiciones || {}); setCrucesFinales(datosFirebase.crucesFinales || []); setZonasConfig(datosFirebase.zonasConfig || { zona1: [], zona2: [] }); setPlayoffAvances(datosFirebase.playoffAvances || {});
+                                            setNumEquipos(datosFirebase.numEquipos || 10); setEquipos(datosFirebase.equipos || []); setBaseEquipos(datosFirebase.baseEquipos || EQUIPOS_POR_DEFECTO); setFechas(datosFirebase.fechas || []); setResultados(datosFirebase.resultados || {}); setPosiciones(datosFirebase.posiciones || {}); setCrucesFinales(datosFirebase.crucesFinales || []); setZonasConfig({ zona1: (datosFirebase.zonasConfig?.zona1 || []), zona2: (datosFirebase.zonasConfig?.zona2 || []) }); setPlayoffAvances(datosFirebase.playoffAvances || {});
                                             setLastSync(datosFirebase.ultimaActualizacion); setSyncStatus('synced'); localStorage.setItem(ID_PROYECTO + '_datos', JSON.stringify(datosFirebase));
                                             alert('✓ Datos cargados desde Firebase exitosamente');
                                         } else { alert('No hay datos guardados en Firebase'); setSyncStatus('local'); }
@@ -1861,13 +1861,13 @@
                                         <div style={{background: '#f8f9fa', padding: '20px', borderRadius: '8px', border: '1px solid #e2e8f0'}}>
                                             <h4 style={{marginBottom: '15px', color: '#1e3c72', borderBottom: '2px solid #d4af37', paddingBottom: '5px'}}>Zona 1</h4>
                                             <ul style={{listStyle: 'none', padding: 0}}>
-                                                {zonasConfig.zona1.map((eq, idx) => eq ? <li key={idx} style={{padding: '8px 0', borderBottom: '1px solid #ddd', fontWeight: eq===miEquipoNombre?'bold':'normal', color: eq===miEquipoNombre?'#10b981':'#333'}}>{eq} {eq===miEquipoNombre&&'⭐'}</li> : null)}
+                                                {(zonasConfig.zona1 || []).map((eq, idx) => eq ? <li key={idx} style={{padding: '8px 0', borderBottom: '1px solid #ddd', fontWeight: eq===miEquipoNombre?'bold':'normal', color: eq===miEquipoNombre?'#10b981':'#333'}}>{eq} {eq===miEquipoNombre&&'⭐'}</li> : null)}
                                             </ul>
                                         </div>
                                         <div style={{background: '#f8f9fa', padding: '20px', borderRadius: '8px', border: '1px solid #e2e8f0'}}>
                                             <h4 style={{marginBottom: '15px', color: '#1e3c72', borderBottom: '2px solid #d4af37', paddingBottom: '5px'}}>Zona 2</h4>
                                             <ul style={{listStyle: 'none', padding: 0}}>
-                                                {zonasConfig.zona2.map((eq, idx) => eq ? <li key={idx} style={{padding: '8px 0', borderBottom: '1px solid #ddd', fontWeight: eq===miEquipoNombre?'bold':'normal', color: eq===miEquipoNombre?'#10b981':'#333'}}>{eq} {eq===miEquipoNombre&&'⭐'}</li> : null)}
+                                                {(zonasConfig.zona2 || []).map((eq, idx) => eq ? <li key={idx} style={{padding: '8px 0', borderBottom: '1px solid #ddd', fontWeight: eq===miEquipoNombre?'bold':'normal', color: eq===miEquipoNombre?'#10b981':'#333'}}>{eq} {eq===miEquipoNombre&&'⭐'}</li> : null)}
                                             </ul>
                                         </div>
                                     </div>
@@ -1877,7 +1877,7 @@
                                             <label><strong>Zona 1</strong></label>
                                             {[0, 1, 2, 3, 4].map(idx => (
                                                 <div key={idx} className="form-group">
-                                                    <select value={zonasConfig.zona1[idx] || ''} onChange={(e) => { const n = {...zonasConfig}; n.zona1[idx] = e.target.value; setZonasConfig(n); }}>
+                                                    <select value={(zonasConfig.zona1 || [])[idx] || ''} onChange={(e) => { const n = {...zonasConfig, zona1: [...(zonasConfig.zona1||[])], zona2: [...(zonasConfig.zona2||[])]}; n.zona1[idx] = e.target.value; setZonasConfig(n); }}>
                                                         <option value="">Seleccionar equipo...</option>
                                                         {equipos.map((eq, eqIdx) => (<option key={eqIdx} value={eq.nombre}>{eq.nombre}</option>))}
                                                     </select>
@@ -1888,7 +1888,7 @@
                                             <label><strong>Zona 2</strong></label>
                                             {[0, 1, 2, 3, 4].map(idx => (
                                                 <div key={idx} className="form-group">
-                                                    <select value={zonasConfig.zona2[idx] || ''} onChange={(e) => { const n = {...zonasConfig}; n.zona2[idx] = e.target.value; setZonasConfig(n); }}>
+                                                    <select value={(zonasConfig.zona2 || [])[idx] || ''} onChange={(e) => { const n = {...zonasConfig, zona1: [...(zonasConfig.zona1||[])], zona2: [...(zonasConfig.zona2||[])]}; n.zona2[idx] = e.target.value; setZonasConfig(n); }}>
                                                         <option value="">Seleccionar equipo...</option>
                                                         {equipos.map((eq, eqIdx) => (<option key={eqIdx} value={eq.nombre}>{eq.nombre}</option>))}
                                                     </select>
@@ -1898,7 +1898,7 @@
                                     </div>
                                 )}
 
-                                {userRole !== 'jugador' && zonasConfig.zona1.filter(e => e).length === 5 && zonasConfig.zona2.filter(e => e).length === 5 && (
+                                {userRole !== 'jugador' && (zonasConfig.zona1||[]).filter(e => e).length === 5 && (zonasConfig.zona2||[]).filter(e => e).length === 5 && (
                                     <div style={{marginTop: '20px'}}>
                                         <button className="btn btn-success btn-responsive" onClick={() => setShowAsignarFechasModal(true)}>Generar Cruces de Zonas</button>
                                     </div>
@@ -2364,7 +2364,7 @@
             const miEquipoNombre = (equipos && equipos.find(e => e.esGoat) || { nombre: 'Mi Equipo' }).nombre;
 
             const calcularTablaZona = (zona) => {
-                const equiposZona = zona === 1 ? zonasConfig.zona1 : zonasConfig.zona2;
+                const equiposZona = zona === 1 ? (zonasConfig.zona1 || []) : (zonasConfig.zona2 || []);
                 const tabla = {};
                 equiposZona.forEach((equipo, index) => { if (equipo) tabla[equipo] = { nombre: equipo, partidos: 0, ganados: 0, perdidos: 0, puntosFavor: 0, puntosContra: 0, diferencia: 0, puntosTotales: 0, originalIndex: index }; });
                 fechas.forEach((fecha, fechaIdx) => {
@@ -2457,7 +2457,7 @@
             if (equipos.length < 10) return <div className="warning">Por favor, que un Capitán configure primero los equipos en la pestaña "Configuración".</div>;
 
             const calcularTablaZona = (zona) => {
-                const equiposZona = zona === 1 ? zonasConfig.zona1 : zonasConfig.zona2;
+                const equiposZona = zona === 1 ? (zonasConfig.zona1 || []) : (zonasConfig.zona2 || []);
                 const tabla = {};
                 equiposZona.forEach(equipo => { if (equipo) tabla[equipo] = { partidos: 0, ganados: 0, perdidos: 0, puntosFavor: 0, puntosContra: 0, diferencia: 0, puntosTotales: 0 }; });
 
@@ -2535,7 +2535,7 @@
             return (
                 <div>
                     <h2 style={{marginBottom: '20px', color: '#1e3c72'}}>Tablas de Posiciones</h2>
-                    {zonasConfig.zona1.filter(e => e).length === 5 && zonasConfig.zona2.filter(e => e).length === 5 ? (
+                    {(zonasConfig.zona1||[]).filter(e => e).length === 5 && (zonasConfig.zona2||[]).filter(e => e).length === 5 ? (
                         <>
                             <div className="grid-2" style={{marginBottom: '40px'}}>
                                 <div>
