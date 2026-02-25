@@ -523,88 +523,69 @@
                             </div>
                         )}
 
-                        {/* ── PASO 3: Plantel ── */}
-                        {paso === 3 && (
-                            <div>
-                                <h2 style={{color:'#203a43', marginBottom:'6px', fontSize:'20px'}}>Paso 3 — Plantel Inicial</h2>
-                                <p style={{color:'#64748b', fontSize:'14px', marginBottom:'16px'}}>
-                                    Podés agregar más jugadores después desde Configuración.<br/>
-                                    Límites: Caballeros 5 por cat. · Damas B/C 4 · Damas A 3
-                                </p>
+                        {/* ── PASO 3: Plantel por Cupos (Wizard) ── */}
+{paso === 3 && (
+    <div>
+        <h2 style={{color:'#203a43', marginBottom:'6px', fontSize:'20px'}}>Paso 3 — Plantel Inicial</h2>
+        <p style={{color:'#64748b', fontSize:'14px', marginBottom:'20px'}}>
+            Hacé clic en los espacios disponibles para asignar a tus jugadores. 
+        </p>
 
-                                {/* Formulario inline para agregar jugador */}
-                                {showAgregarJugador ? (
-                                    <div style={{background:'#f0f9ff', border:'2px solid #0ea5e9', borderRadius:'10px', padding:'16px', marginBottom:'14px'}}>
-                                        <div style={{marginBottom:'10px'}}>
-                                            <label style={{fontSize:'13px', fontWeight:'600', color:'#0369a1', display:'block', marginBottom:'4px'}}>Nombre *</label>
-                                            <input type="text" value={jugadorTemp.nombre}
-                                                onChange={e => setJugadorTemp({...jugadorTemp, nombre: e.target.value})}
-                                                onKeyPress={e => e.key === 'Enter' && agregarJugadorAlPlantel()}
-                                                autoFocus placeholder="Nombre del jugador"
-                                                style={{width:'100%', padding:'9px 12px', border:'2px solid #e2e8f0', borderRadius:'8px', fontSize:'14px'}} />
-                                        </div>
-                                        <div style={{marginBottom:'10px'}}>
-                                            <label style={{fontSize:'13px', fontWeight:'600', color:'#0369a1', display:'block', marginBottom:'4px'}}>Categoría *</label>
-                                            <select value={jugadorTemp.categoria}
-                                                onChange={e => setJugadorTemp({...jugadorTemp, categoria: e.target.value})}
-                                                style={{width:'100%', padding:'9px 12px', border:'2px solid #e2e8f0', borderRadius:'8px', fontSize:'14px'}}>
-                                                <option value="">-- Seleccionar categoría --</option>
-                                                {CATEGORIAS_DISPONIBLES.map(c => {
-                                                    const enCat = jugadores.filter(j => j.categoria === c.value).length;
-                                                    const llena = enCat >= c.max;
-                                                    return <option key={c.value} value={c.value} disabled={llena}>{c.label} ({enCat}/{c.max}){llena ? ' — COMPLETA' : ''}</option>;
-                                                })}
-                                            </select>
-                                        </div>
-                                        <div style={{marginBottom:'12px'}}>
-                                            <label style={{display:'flex', alignItems:'center', gap:'8px', cursor:'pointer', fontSize:'13px', fontWeight:'600', color:'#0369a1'}}>
-                                                <input type="checkbox" checked={jugadorTemp.capitan}
-                                                    onChange={e => setJugadorTemp({...jugadorTemp, capitan: e.target.checked})}
-                                                    style={{width:'18px', height:'18px'}} />
-                                                Es Capitán ⭐
-                                            </label>
-                                        </div>
-                                        {errorJugador && <div style={{background:'#fee2e2', color:'#991b1b', padding:'8px 12px', borderRadius:'6px', fontSize:'13px', marginBottom:'10px'}}>⚠️ {errorJugador}</div>}
-                                        <div style={{display:'flex', gap:'8px'}}>
-                                            <button onClick={agregarJugadorAlPlantel} style={{flex:2, padding:'9px', background:'#10b981', color:'white', border:'none', borderRadius:'8px', fontWeight:'700', cursor:'pointer', fontSize:'14px'}}>✓ Agregar</button>
-                                            <button onClick={() => { setShowAgregarJugador(false); setJugadorTemp({ nombre:'', categoria:'', capitan: false }); setErrorJugador(''); }} style={{flex:1, padding:'9px', background:'#f1f5f9', color:'#475569', border:'none', borderRadius:'8px', fontWeight:'600', cursor:'pointer'}}>Cancelar</button>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <button onClick={() => setShowAgregarJugador(true)}
-                                        style={{width:'100%', padding:'12px', background:'#0ea5e9', color:'white', border:'none', borderRadius:'10px', fontWeight:'700', cursor:'pointer', fontSize:'14px', marginBottom:'14px'}}>
-                                        ＋ Agregar Jugador
-                                    </button>
-                                )}
+        <div style={{maxHeight:'400px', overflowY:'auto', paddingRight:'10px', display:'flex', flexDirection:'column', gap:'15px'}}>
+            {CATEGORIAS_DISPONIBLES.map(cat => {
+                const jugadoresEnCat = jugadores.filter(j => j.categoria === cat.value);
+                const slots = Array.from({ length: cat.max });
 
-                                {/* Lista de jugadores agregados */}
-                                {jugadores.length > 0 ? (
-                                    <div style={{maxHeight:'260px', overflowY:'auto', paddingRight:'4px'}}>
-                                        {CATEGORIAS_DISPONIBLES.filter(c => jugadores.some(j => j.categoria === c.value)).map(c => (
-                                            <div key={c.value} style={{marginBottom:'10px'}}>
-                                                <div style={{fontSize:'12px', fontWeight:'700', color:'#475569', textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:'4px'}}>
-                                                    {c.label}
-                                                </div>
-                                                {jugadores.filter(j => j.categoria === c.value).map((j, i) => (
-                                                    <div key={j.nombre} style={{display:'flex', justifyContent:'space-between', alignItems:'center', background:'#f8fafc', padding:'8px 12px', borderRadius:'6px', marginBottom:'4px', border:'1px solid #e2e8f0'}}>
-                                                        <span style={{fontWeight:'600', fontSize:'14px'}}>
-                                                            {j.nombre}
-                                                            {j.capitan && <span style={{background:'#f59e0b', color:'white', fontSize:'9px', padding:'1px 6px', borderRadius:'4px', marginLeft:'6px'}}>CAP</span>}
-                                                        </span>
-                                                        <button onClick={() => quitarJugador(jugadores.indexOf(j))}
-                                                            style={{background:'#fee2e2', color:'#dc2626', border:'none', borderRadius:'6px', padding:'4px 10px', cursor:'pointer', fontWeight:'700', fontSize:'13px'}}>×</button>
-                                                    </div>
-                                                ))}
+                return (
+                    <div key={cat.value} style={{background:'#f8fafc', padding:'15px', borderRadius:'12px', border:'1px solid #e2e8f0'}}>
+                        <div style={{display:'flex', justifyContent:'space-between', marginBottom:'10px', alignItems:'center'}}>
+                            <span style={{fontWeight:'800', color:'#1e3c72', fontSize:'12px', textTransform:'uppercase', letterSpacing:'0.5px'}}>
+                                {cat.label}
+                            </span>
+                            <span style={{fontSize:'11px', fontWeight:'600', color:'#64748b', background:'#e2e8f0', padding:'2px 8px', borderRadius:'10px'}}>
+                                {jugadoresEnCat.length} / {cat.max}
+                            </span>
+                        </div>
+                        
+                        <div style={{display:'flex', flexDirection:'column', gap:'6px'}}>
+                            {slots.map((_, i) => {
+                                const jugador = jugadoresEnCat[i];
+                                return (
+                                    <div key={i}>
+                                        {jugador ? (
+                                            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', background:'white', padding:'8px 12px', borderRadius:'8px', border:'1px solid #cbd5e1', boxShadow:'0 1px 2px rgba(0,0,0,0.05)'}}>
+                                                <span style={{fontSize:'14px', fontWeight:'600', color:'#1e293b'}}>
+                                                    {jugador.nombre} {jugador.capitan && '⭐'}
+                                                </span>
+                                                <button onClick={() => setJugadores(jugadores.filter(j => j !== jugador))} 
+                                                    style={{background:'#fee2e2', border:'none', color:'#ef4444', cursor:'pointer', fontWeight:'800', width:'24px', height:'24px', borderRadius:'6px', display:'flex', alignItems:'center', justifyContent:'center'}}>×</button>
                                             </div>
-                                        ))}
+                                        ) : (
+                                            <button 
+                                                onClick={() => {
+                                                    const nombre = prompt(`Nombre del jugador para ${cat.label} (Espacio ${i+1}):`);
+                                                    if (nombre && nombre.trim()) {
+                                                        const esCap = confirm(`¿Es ${nombre} capitán/a?`);
+                                                        setJugadores([...jugadores, { nombre: nombre.trim(), categoria: cat.value, capitan: esCap }]);
+                                                    }
+                                                }}
+                                                style={{width:'100%', padding:'10px', background:'white', border:'2px dashed #cbd5e1', borderRadius:'8px', color:'#94a3b8', fontSize:'13px', cursor:'pointer', textAlign:'left', transition:'0.2s'}}
+                                                onMouseOver={e => e.target.style.borderColor = '#d4af37'}
+                                                onMouseOut={e => e.target.style.borderColor = '#cbd5e1'}>
+                                                + Asignar {cat.label} (Espacio {i+1})
+                                            </button>
+                                        )}
                                     </div>
-                                ) : (
-                                    <div style={{textAlign:'center', padding:'20px', color:'#94a3b8', background:'#f8fafc', borderRadius:'8px', border:'2px dashed #e2e8f0'}}>
-                                        Aún no hay jugadores. Usá el botón de arriba para agregar.
-                                    </div>
-                                )}
-                            </div>
-                        )}
+                                );
+                            })}
+                        </div>
+                    </div>
+                );
+            })}
+        </div>
+        {error && <div style={{background:'#fee2e2', color:'#991b1b', padding:'10px', borderRadius:'8px', marginTop:'15px', fontSize:'14px'}}>⚠️ {error}</div>}
+    </div>
+)}
 
                         {/* Error */}
                         {error && (
@@ -1479,57 +1460,86 @@
                 <div>
                     <h2 style={{marginBottom: '20px', color: '#1e3c72'}}>Configuración del Torneo</h2>
                     
-                    {/* ── SECCIÓN: PLANTEL ── */}
+                    {/* ── SECCIÓN: PLANTEL CON SISTEMA DE SLOTS ── */}
                     {(userRole === 'admin' || userRole === 'capitan') && (
                         <div style={{marginBottom:'30px', padding:'20px', background:'#f8fafc', borderRadius:'12px', border:'1px solid #e2e8f0'}}>
                             <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'16px', flexWrap:'wrap', gap:'10px'}}>
                                 <h3 style={{color:'#1e3c72', margin:0}}>👤 Gestión del Plantel</h3>
-                                <button className="btn btn-primary" style={{margin:0}} disabled={guardandoPlantel}
-                                    onClick={() => { setJugadorEditando(null); setShowJugadorModal(true); }}>
-                                    ＋ Agregar Jugador
-                                </button>
+                                {guardandoPlantel && <div style={{color:'#64748b', fontSize:'13px'}}>⏳ Guardando en Firebase...</div>}
                             </div>
 
-                            {Object.keys(plantelActual).length === 0 ? (
-                                <div style={{textAlign:'center', padding:'24px', color:'#94a3b8'}}>
-                                    <p>No hay jugadores cargados. Agregá el primero.</p>
-                                </div>
-                            ) : (
-                                ORDEN_CATS.filter(cat => plantelActual[cat] && plantelActual[cat].length > 0).map(cat => (
-                                    <div key={cat} style={{marginBottom:'16px'}}>
-                                        <div style={{display:'flex', alignItems:'center', gap:'8px', marginBottom:'8px'}}>
-                                            <span style={{fontWeight:'700', color:'#1e3c72', fontSize:'14px'}}>{NOMBRES_CATS[cat]}</span>
-                                            <span style={{background:'#e0f2fe', color:'#0369a1', fontSize:'11px', padding:'2px 8px', borderRadius:'10px'}}>
-                                                {plantelActual[cat].length} / {MAX_POR_CATEGORIA[cat]}
-                                            </span>
+                            <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(280px, 1fr))', gap:'20px'}}>
+                                {ORDEN_CATS.map(catKey => {
+                                    // Obtenemos los jugadores de esta categoría o un array vacío si no hay ninguno
+                                    const jugadoresEnCat = plantelActual[catKey] || [];
+                                    const maxCupos = MAX_POR_CATEGORIA[catKey];
+                                    // Creamos un array virtual con el tamaño máximo permitido para esta categoría
+                                    const slots = Array.from({ length: maxCupos });
+
+                                    return (
+                                        <div key={catKey} style={{background:'white', padding:'15px', borderRadius:'12px', border:'1px solid #e2e8f0', boxShadow:'0 2px 4px rgba(0,0,0,0.02)'}}>
+                                            <div style={{fontWeight:'800', color:'#1e3c72', fontSize:'12px', marginBottom:'12px', borderBottom:'2px solid #f1f5f9', paddingBottom:'5px', display:'flex', justifyContent:'space-between'}}>
+                                                {NOMBRES_CATS[catKey].toUpperCase()}
+                                                <span style={{color: jugadoresEnCat.length === maxCupos ? '#10b981' : '#d4af37'}}>
+                                                    {jugadoresEnCat.length}/{maxCupos}
+                                                </span>
+                                            </div>
+
+                                            <div style={{display:'flex', flexDirection:'column', gap:'8px'}}>
+                                                {slots.map((_, i) => {
+                                                    const jugador = jugadoresEnCat[i];
+                                                    return (
+                                                        <div key={`${catKey}-slot-${i}`}>
+                                                            {jugador ? (
+                                                                /* SLOT OCUPADO POR JUGADOR */
+                                                                <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', padding:'8px 10px', background:'#f0f9ff', borderRadius:'8px', border:'1px solid #bae6fd'}}>
+                                                                    <span style={{fontSize:'13px', fontWeight:'600', color:'#1e293b', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
+                                                                        {jugador.nombre}
+                                                                        {jugador.capitan && <span style={{background:'#f59e0b', color:'white', fontSize:'9px', padding:'1px 5px', borderRadius:'4px', marginLeft:'6px'}}>CAP</span>}
+                                                                    </span>
+                                                                    <div style={{display:'flex', gap:'4px', flexShrink:0}}>
+                                                                        <button title="Editar"
+                                                                            onClick={() => { setJugadorEditando(jugador); setShowJugadorModal(true); }}
+                                                                            style={{background:'none', border:'none', cursor:'pointer', fontSize:'14px', padding:'2px'}}>✏️</button>
+                                                                        <button title="Eliminar"
+                                                                            onClick={() => eliminarJugador(jugador.nombre, catKey)}
+                                                                            style={{background:'none', border:'none', color:'#ef4444', cursor:'pointer', fontSize:'14px', padding:'2px'}}>🗑️</button>
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                /* SLOT VACÍO - BOTÓN DE AGREGAR */
+                                                                <button 
+                                                                    onClick={() => {
+                                                                        setJugadorEditando({ nombre: '', categoria: catKey, capitan: false });
+                                                                        setShowJugadorModal(true);
+                                                                    }}
+                                                                    style={{
+                                                                        width:'100%', 
+                                                                        padding:'8px', 
+                                                                        background:'#f8fafc', 
+                                                                        border:'1px dashed #cbd5e1', 
+                                                                        borderRadius:'8px', 
+                                                                        color:'#94a3b8', 
+                                                                        fontSize:'12px', 
+                                                                        cursor:'pointer', 
+                                                                        textAlign:'left',
+                                                                        display:'flex',
+                                                                        alignItems:'center',
+                                                                        gap:'5px'
+                                                                    }}
+                                                                >
+                                                                    <span>➕</span>
+                                                                    <span>Espacio {i + 1} disponible</span>
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
                                         </div>
-                                        <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(200px, 1fr))', gap:'8px'}}>
-                                            {plantelActual[cat].map(jugador => (
-                                                <div key={jugador.nombre} style={{background:'white', padding:'10px 12px', borderRadius:'8px', border:'1px solid #e2e8f0', display:'flex', justifyContent:'space-between', alignItems:'center', gap:'8px'}}>
-                                                    <span style={{fontWeight:'600', fontSize:'14px', color:'#1e293b'}}>
-                                                        {jugador.nombre}
-                                                        {jugador.capitan && <span style={{background:'#f59e0b', color:'white', fontSize:'9px', padding:'1px 6px', borderRadius:'4px', marginLeft:'6px'}}>CAP</span>}
-                                                    </span>
-                                                    <div style={{display:'flex', gap:'4px', flexShrink:0}}>
-                                                        {getCatSuperior(cat) && (
-                                                            <button title="Ascender de categoría"
-                                                                onClick={() => { setJugadorEditando({...jugador, categoria: getCatSuperior(cat)}); setShowJugadorModal(true); }}
-                                                                style={{background:'#dbeafe', color:'#1d4ed8', border:'none', borderRadius:'6px', padding:'4px 8px', cursor:'pointer', fontSize:'14px', fontWeight:'700'}}>↑</button>
-                                                        )}
-                                                        <button title="Editar jugador"
-                                                            onClick={() => { setJugadorEditando(jugador); setShowJugadorModal(true); }}
-                                                            style={{background:'#f1f5f9', color:'#475569', border:'none', borderRadius:'6px', padding:'4px 8px', cursor:'pointer', fontSize:'14px'}}>✏️</button>
-                                                        <button title="Eliminar jugador"
-                                                            onClick={() => eliminarJugador(jugador.nombre, cat)}
-                                                            style={{background:'#fee2e2', color:'#dc2626', border:'none', borderRadius:'6px', padding:'4px 8px', cursor:'pointer', fontSize:'14px'}}>🗑️</button>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                ))
-                            )}
-                            {guardandoPlantel && <div style={{textAlign:'center', color:'#64748b', marginTop:'8px', fontSize:'13px'}}>⏳ Guardando en Firebase...</div>}
+                                    );
+                                })}
+                            </div>
                         </div>
                     )}
 
