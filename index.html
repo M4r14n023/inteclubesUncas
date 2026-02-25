@@ -805,9 +805,31 @@
             };
 
             const agregarFecha = (numFecha, rival) => {
-                const nuevaFecha = { numero: numFecha, rival: rival, partidos: PARTIDOS.map(p => ({ ...p, jugadores: [], horario: '', dia: 'sabado', ganado: false })), partidoBonus: null, categoriasHabilitadas: { caballeros_5ta_en_4ta: false, caballeros_4ta_en_3ra: false, caballeros_3ra_en_2da: false, damas_c_en_b: false, damas_b_en_a: false }, jugadoresHabilitados: [] };
-                const nuevasFechas = [...fechas]; nuevasFechas[numFecha - 1] = nuevaFecha; setFechas(nuevasFechas);
-            };
+    setFechas(prevFechas => {
+        // 1. Convertimos a array por seguridad, por si Firebase ya lo rompió
+        const arrSeguro = Array.isArray(prevFechas) ? prevFechas : Object.values(prevFechas || {});
+        const nuevasFechas = [...arrSeguro];
+        
+        // 2. Armamos la estructura de la fecha
+        const nuevaFecha = { 
+            numero: numFecha, 
+            rival: rival, 
+            partidos: PARTIDOS.map(p => ({ ...p, jugadores: [], horario: '', dia: 'sabado', ganado: false })), 
+            partidoBonus: null, 
+            categoriasHabilitadas: { caballeros_5ta_en_4ta: false, caballeros_4ta_en_3ra: false, caballeros_3ra_en_2da: false, damas_c_en_b: false, damas_b_en_a: false }, 
+            jugadoresHabilitados: [] 
+        };
+        
+        nuevasFechas[numFecha - 1] = nuevaFecha;
+        
+        // 3. Rellenamos con 'null' los espacios vacíos para que Firebase NO lo transforme en un objeto
+        for (let i = 0; i < nuevasFechas.length; i++) {
+            if (nuevasFechas[i] === undefined) nuevasFechas[i] = null;
+        }
+        
+        return nuevasFechas;
+    });
+};
 
             const procesarHorarios = (fechaIndex, texto) => {
                 const lineas = texto.split('\n').filter(l => l.trim());
