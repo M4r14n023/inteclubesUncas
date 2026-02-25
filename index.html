@@ -2745,6 +2745,9 @@
 
             // Nombre dinámico del equipo propio
             const miEquipoNombre = (equipos.find(e => e.esGoat) || { nombre: 'Mi Equipo' }).nombre;
+            
+            // Filtramos a nuestro equipo para que NO aparezca en las opciones manuales
+            const equiposDisponibles = equipos.filter(eq => !eq.esGoat);
 
             if (equipos.length < 10) return <div className="warning">Por favor, que un Capitán configure primero los equipos en la pestaña "Configuración".</div>;
 
@@ -2837,8 +2840,8 @@
                                             <thead><tr><th>Pos</th><th>Equipo</th><th>SG</th><th>SP</th><th>Dif</th><th>PG</th><th>PP</th><th>Pts</th></tr></thead>
                                             <tbody>
                                                 {tablaZona1.map(([equipo, data], idx) => (
-                                                    <tr key={equipo}>
-                                                        <td><strong>{idx + 1}</strong></td><td><strong>{equipo}</strong></td>
+                                                    <tr key={equipo} style={{background: equipo === miEquipoNombre ? '#f0fdf4' : 'transparent'}}>
+                                                        <td><strong>{idx + 1}</strong></td><td><strong>{equipo} {equipo === miEquipoNombre && '⭐'}</strong></td>
                                                         <td>{data.ganados}</td><td>{data.perdidos}</td><td>{data.diferencia}</td>
                                                         <td>{data.puntosFavor}</td><td>{data.puntosContra}</td><td><strong>{data.puntosTotales}</strong></td>
                                                     </tr>
@@ -2854,8 +2857,8 @@
                                             <thead><tr><th>Pos</th><th>Equipo</th><th>SG</th><th>SP</th><th>Dif</th><th>PG</th><th>PP</th><th>Pts</th></tr></thead>
                                             <tbody>
                                                 {tablaZona2.map(([equipo, data], idx) => (
-                                                    <tr key={equipo}>
-                                                        <td><strong>{idx + 1}</strong></td><td><strong>{equipo}</strong></td>
+                                                    <tr key={equipo} style={{background: equipo === miEquipoNombre ? '#f0fdf4' : 'transparent'}}>
+                                                        <td><strong>{idx + 1}</strong></td><td><strong>{equipo} {equipo === miEquipoNombre && '⭐'}</strong></td>
                                                         <td>{data.ganados}</td><td>{data.perdidos}</td><td>{data.diferencia}</td>
                                                         <td>{data.puntosFavor}</td><td>{data.puntosContra}</td><td><strong>{data.puntosTotales}</strong></td>
                                                     </tr>
@@ -2873,8 +2876,8 @@
                                         <thead><tr><th>Pos</th><th>Equipo</th><th>SG</th><th>SP</th><th>Dif</th><th>PG</th><th>PP</th><th>Pts</th></tr></thead>
                                         <tbody>
                                             {tablaGeneral.map(([equipo, data], idx) => (
-                                                <tr key={equipo}>
-                                                    <td><strong>{idx + 1}</strong></td><td><strong>{equipo}</strong></td>
+                                                <tr key={equipo} style={{background: equipo === miEquipoNombre ? '#f0fdf4' : 'transparent'}}>
+                                                    <td><strong>{idx + 1}</strong></td><td><strong>{equipo} {equipo === miEquipoNombre && '⭐'}</strong></td>
                                                     <td>{data.ganados}</td><td>{data.perdidos}</td><td>{data.diferencia}</td>
                                                     <td>{data.puntosFavor}</td><td>{data.puntosContra}</td><td><strong>{data.puntosTotales}</strong></td>
                                                 </tr>
@@ -2886,43 +2889,83 @@
 
                             {userRole !== 'jugador' && (
                                 <div>
-                                    <h3 style={{marginBottom: '15px', color: '#1e3c72'}}>Cruces Adicionales</h3>
+                                    <h3 style={{marginBottom: '4px', color: '#1e3c72'}}>Resultados del Torneo</h3>
+                                    <p style={{color: '#64748b', fontSize: '13px', marginBottom: '16px'}}>Acá podés agregar los resultados de los otros equipos para que se actualicen las tablas.</p>
+                                    
                                     <button className="btn btn-primary btn-responsive" onClick={() => { setEditandoCruce(null); setCruceActual({ tipo: '', equipo1: '', equipo2: '', resultado1: '', resultado2: '' }); setShowCruceModal(true); }}>
-                                        ➕ Agregar Cruce
+                                        ➕ Agregar Partido (Otros Equipos)
                                     </button>
-                                    {crucesFinales.length > 0 && (
-                                        <div style={{marginTop: '20px'}}>
-                                            {crucesFinales.map((cruce, idx) => (
-                                                <div key={idx} className="flex-mobile-col" style={{ background: '#f8f9fa', padding: '15px', borderRadius: '8px', marginBottom: '10px', border: '2px solid #ddd', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '15px' }}>
+
+                                    <div style={{marginTop: '20px'}}>
+                                        
+                                        {/* Bloque automático de mi equipo */}
+                                        {fechas.filter(f => f && f.rival).map((fecha, idx) => {
+                                            let ptsMiEquipo = 0; let ptsRival = 0;
+                                            fecha.partidos.forEach(p => {
+                                                if(p.jugadores && p.jugadores.length > 0) {
+                                                    const key = `${idx}-${p.id}`;
+                                                    const ganado = resultados[key] || false;
+                                                    const pts = fecha.partidoBonus === p.id ? 20 : 10;
+                                                    if(ganado) ptsMiEquipo += pts; else ptsRival += pts;
+                                                }
+                                            });
+
+                                            return (
+                                                <div key={`auto-${idx}`} className="flex-mobile-col" style={{ background: '#f0fdf4', padding: '15px', borderRadius: '8px', marginBottom: '10px', border: '2px solid #86efac', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '15px' }}>
                                                     <div>
-                                                        <strong>{cruce.tipo}</strong>
-                                                        <div style={{marginTop: '8px'}}>{cruce.equipo1} <strong>{cruce.resultado1 || '0'}</strong> - <strong>{cruce.resultado2 || '0'}</strong> {cruce.equipo2}</div>
+                                                        <strong style={{color: '#166534'}}>Fecha {fecha.numero} (Automático)</strong>
+                                                        <div style={{marginTop: '8px', color: '#166534'}}>{miEquipoNombre} ⭐ <strong>{ptsMiEquipo}</strong> - <strong>{ptsRival}</strong> {fecha.rival}</div>
                                                     </div>
-                                                    <div style={{display: 'flex', gap: '10px'}}>
-                                                        <button className="btn btn-primary" style={{padding: '6px 12px', fontSize: '14px', margin: '0'}} onClick={() => { setEditandoCruce(idx); setCruceActual(cruce); setShowCruceModal(true); }}>✏️</button>
-                                                        <button className="btn btn-danger" style={{padding: '6px 12px', fontSize: '14px', margin: '0'}} onClick={() => eliminarCruce(idx)}>🗑️</button>
+                                                    <div style={{fontSize: '12px', background: '#dcfce7', color: '#166534', padding: '4px 8px', borderRadius: '4px', fontWeight: 'bold'}}>
+                                                        Calculado en "Resultados"
                                                     </div>
                                                 </div>
-                                            ))}
-                                        </div>
-                                    )}
+                                            );
+                                        })}
+
+                                        {/* Bloque de cruces manuales */}
+                                        {crucesFinales.map((cruce, idx) => (
+                                            <div key={`manual-${idx}`} className="flex-mobile-col" style={{ background: '#f8f9fa', padding: '15px', borderRadius: '8px', marginBottom: '10px', border: '2px solid #ddd', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '15px' }}>
+                                                <div>
+                                                    <strong>{cruce.tipo}</strong>
+                                                    <div style={{marginTop: '8px'}}>{cruce.equipo1} <strong>{cruce.resultado1 || '0'}</strong> - <strong>{cruce.resultado2 || '0'}</strong> {cruce.equipo2}</div>
+                                                </div>
+                                                <div style={{display: 'flex', gap: '10px'}}>
+                                                    <button className="btn btn-primary" style={{padding: '6px 12px', fontSize: '14px', margin: '0'}} onClick={() => { setEditandoCruce(idx); setCruceActual(cruce); setShowCruceModal(true); }}>✏️</button>
+                                                    <button className="btn btn-danger" style={{padding: '6px 12px', fontSize: '14px', margin: '0'}} onClick={() => eliminarCruce(idx)}>🗑️</button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             )}
 
                             {showCruceModal && (
                                 <div className="modal" onClick={() => {}}>
                                     <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                                        <div className="modal-header">{editandoCruce !== null ? 'Editar Cruce' : 'Agregar Cruce'}</div>
+                                        <div className="modal-header">{editandoCruce !== null ? 'Editar Partido' : 'Agregar Partido (Otros Equipos)'}</div>
                                         <div className="form-group">
-                                            <label>Tipo de Cruce</label>
+                                            <label>Instancia</label>
                                             <select value={cruceActual.tipo} onChange={(e) => setCruceActual({...cruceActual, tipo: e.target.value})}>
-                                                <option value="">Seleccionar...</option><option value="Fecha 1">Fecha 1</option><option value="Fecha 2">Fecha 2</option><option value="Fecha 3">Fecha 3</option><option value="Fecha 4">Fecha 4</option><option value="Octavos de Final">Octavos de Final</option><option value="Cuartos de Final">Cuartos de Final</option><option value="Semifinal">Semifinal</option><option value="Final">Final</option>
+                                                <option value="">Seleccionar...</option><option value="Fecha 1">Fecha 1</option><option value="Fecha 2">Fecha 2</option><option value="Fecha 3">Fecha 3</option><option value="Fecha 4">Fecha 4</option><option value="Interzonal">Interzonal</option><option value="Octavos de Final">Octavos de Final</option><option value="Cuartos de Final">Cuartos de Final</option><option value="Semifinal">Semifinal</option><option value="Final">Final</option>
                                             </select>
                                         </div>
-                                        <div className="form-group"><label>Equipo 1</label><select value={cruceActual.equipo1} onChange={(e) => setCruceActual({...cruceActual, equipo1: e.target.value})}><option value="">Seleccionar...</option>{equipos.map((eq, idx) => (<option key={idx} value={eq.nombre}>{eq.nombre}</option>))}</select></div>
-                                        <div className="form-group"><label>Resultado Equipo 1</label><input type="number" value={cruceActual.resultado1} onChange={(e) => setCruceActual({...cruceActual, resultado1: e.target.value})} placeholder="Puntos"/></div>
-                                        <div className="form-group"><label>Equipo 2</label><select value={cruceActual.equipo2} onChange={(e) => setCruceActual({...cruceActual, equipo2: e.target.value})}><option value="">Seleccionar...</option>{equipos.map((eq, idx) => (<option key={idx} value={eq.nombre}>{eq.nombre}</option>))}</select></div>
-                                        <div className="form-group"><label>Resultado Equipo 2</label><input type="number" value={cruceActual.resultado2} onChange={(e) => setCruceActual({...cruceActual, resultado2: e.target.value})} placeholder="Puntos"/></div>
+                                        <div className="form-group">
+                                            <label>Equipo 1</label>
+                                            <select value={cruceActual.equipo1} onChange={(e) => setCruceActual({...cruceActual, equipo1: e.target.value})}>
+                                                <option value="">Seleccionar...</option>
+                                                {equiposDisponibles.filter(eq => eq.nombre !== cruceActual.equipo2).map((eq, idx) => (<option key={idx} value={eq.nombre}>{eq.nombre}</option>))}
+                                            </select>
+                                        </div>
+                                        <div className="form-group"><label>Puntos Equipo 1</label><input type="number" value={cruceActual.resultado1} onChange={(e) => setCruceActual({...cruceActual, resultado1: e.target.value})} placeholder="Puntos a favor"/></div>
+                                        <div className="form-group">
+                                            <label>Equipo 2</label>
+                                            <select value={cruceActual.equipo2} onChange={(e) => setCruceActual({...cruceActual, equipo2: e.target.value})}>
+                                                <option value="">Seleccionar...</option>
+                                                {equiposDisponibles.filter(eq => eq.nombre !== cruceActual.equipo1).map((eq, idx) => (<option key={idx} value={eq.nombre}>{eq.nombre}</option>))}
+                                            </select>
+                                        </div>
+                                        <div className="form-group"><label>Puntos Equipo 2</label><input type="number" value={cruceActual.resultado2} onChange={(e) => setCruceActual({...cruceActual, resultado2: e.target.value})} placeholder="Puntos a favor"/></div>
                                         <div className="flex-mobile-col" style={{display: 'flex', gap: '10px', marginTop: '20px'}}>
                                             <button className="btn btn-primary btn-responsive" onClick={agregarCruce}>{editandoCruce !== null ? 'Actualizar' : 'Guardar'}</button>
                                             <button className="btn btn-danger btn-responsive" onClick={() => { setShowCruceModal(false); setCruceActual({ tipo: '', equipo1: '', equipo2: '', resultado1: '', resultado2: '' }); setEditandoCruce(null); }}>Cancelar</button>
