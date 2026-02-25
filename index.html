@@ -1659,6 +1659,75 @@
             );
         }
 
+        // ── Modal para generar cruces entre zonas ──
+        function AsignarFechasModal({ zonasConfig, equipos, onClose, onGenerar }) {
+            const zona1 = (zonasConfig.zona1 || []).filter(Boolean);
+            const zona2 = (zonasConfig.zona2 || []).filter(Boolean);
+
+            // Cruces inter-zona: cada equipo de zona1 vs cada equipo de zona2
+            const crucesIniciales = [];
+            zona1.forEach(eq1 => {
+                zona2.forEach(eq2 => {
+                    crucesIniciales.push({ equipo1: eq1, equipo2: eq2, tipo: 'Fase de Grupos', resultado1: '', resultado2: '' });
+                });
+            });
+
+            const [cruces, setCruces] = useState(crucesIniciales);
+
+            const guardar = () => {
+                if (confirm(`Se generarán ${cruces.length} cruces entre zonas. ¿Continuar?`)) {
+                    onGenerar(cruces);
+                }
+            };
+
+            return (
+                <div className="modal" onClick={onClose}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()} style={{maxWidth:'560px', padding:0, overflow:'hidden'}}>
+                        <div style={{background:'linear-gradient(135deg,#1a1a1a,#2d2416)', padding:'20px 24px', color:'white'}}>
+                            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+                                <div>
+                                    <h2 style={{margin:0, color:'#d4af37', fontSize:'18px'}}>🏆 Generar Cruces de Zonas</h2>
+                                    <p style={{margin:'4px 0 0', fontSize:'13px', color:'#c5a572'}}>{cruces.length} cruces entre Zona 1 y Zona 2</p>
+                                </div>
+                                <button onClick={onClose} style={{background:'rgba(255,255,255,0.15)', border:'none', color:'white', borderRadius:'8px', padding:'6px 12px', cursor:'pointer', fontSize:'16px'}}>✕</button>
+                            </div>
+                        </div>
+
+                        <div style={{padding:'20px 24px', maxHeight:'55vh', overflowY:'auto'}}>
+                            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px', marginBottom:'16px'}}>
+                                <div style={{background:'#eff6ff', padding:'12px', borderRadius:'8px', border:'1px solid #bfdbfe'}}>
+                                    <p style={{fontWeight:'700', color:'#1d4ed8', fontSize:'12px', marginBottom:'6px', textTransform:'uppercase'}}>Zona 1</p>
+                                    {zona1.map(eq => <p key={eq} style={{margin:'3px 0', fontSize:'13px', fontWeight:'600', color:'#1e293b'}}>{eq}</p>)}
+                                </div>
+                                <div style={{background:'#f5f3ff', padding:'12px', borderRadius:'8px', border:'1px solid #ddd6fe'}}>
+                                    <p style={{fontWeight:'700', color:'#7c3aed', fontSize:'12px', marginBottom:'6px', textTransform:'uppercase'}}>Zona 2</p>
+                                    {zona2.map(eq => <p key={eq} style={{margin:'3px 0', fontSize:'13px', fontWeight:'600', color:'#1e293b'}}>{eq}</p>)}
+                                </div>
+                            </div>
+
+                            <div style={{background:'#f8fafc', borderRadius:'8px', padding:'12px', border:'1px solid #e2e8f0'}}>
+                                <p style={{fontWeight:'700', color:'#475569', fontSize:'12px', marginBottom:'10px', textTransform:'uppercase'}}>Cruces generados</p>
+                                {cruces.map((c, i) => (
+                                    <div key={i} style={{display:'flex', alignItems:'center', gap:'8px', padding:'8px 10px', background:'white', borderRadius:'6px', marginBottom:'6px', border:'1px solid #e2e8f0', fontSize:'13px'}}>
+                                        <span style={{flex:1, fontWeight:'600', textAlign:'right', color:'#1d4ed8'}}>{c.equipo1}</span>
+                                        <span style={{background:'#1e3c72', color:'white', padding:'2px 8px', borderRadius:'4px', fontWeight:'700', fontSize:'11px', flexShrink:0}}>VS</span>
+                                        <span style={{flex:1, fontWeight:'600', color:'#7c3aed'}}>{c.equipo2}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div style={{padding:'16px 24px', borderTop:'1px solid #e2e8f0', display:'flex', gap:'10px', justifyContent:'flex-end', background:'#f8fafc'}}>
+                            <button onClick={onClose} style={{padding:'9px 20px', background:'#f1f5f9', color:'#475569', border:'none', borderRadius:'8px', cursor:'pointer', fontWeight:'600', fontSize:'14px'}}>Cancelar</button>
+                            <button onClick={guardar} style={{padding:'9px 24px', background:'linear-gradient(135deg,#10b981,#059669)', color:'white', border:'none', borderRadius:'8px', cursor:'pointer', fontWeight:'700', fontSize:'14px'}}>
+                                ✅ Confirmar y Guardar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
         function ConfiguracionTab({ userRole, numEquipos, setNumEquipos, equipos, baseEquipos, setBaseEquipos, guardarEquiposSeleccionados, agregarFecha, fechas, zonasConfig, setZonasConfig, config, setConfig }) {
             const miEquipoNombre = (equipos.find(e => e.esGoat) || { nombre: 'Mi Equipo' }).nombre;
             const [showEquiposModal, setShowEquiposModal] = useState(false);
@@ -1735,38 +1804,50 @@
                             </div>
 
                             {Object.keys(plantelActual).length === 0 ? (
-                                <div style={{textAlign:'center', padding:'24px', color:'#94a3b8', background:'white', borderRadius:'8px', border:'2px dashed #e2e8f0'}}>
-                                    <div style={{fontSize:'32px', marginBottom:'8px'}}>🎾</div>
-                                    <p style={{fontWeight:'600'}}>No hay jugadores cargados.</p>
+                                <div style={{textAlign:'center', padding:'32px', color:'#94a3b8', background:'white', borderRadius:'10px', border:'2px dashed #e2e8f0'}}>
+                                    <div style={{fontSize:'36px', marginBottom:'10px'}}>🎾</div>
+                                    <p style={{fontWeight:'700', fontSize:'15px', marginBottom:'4px'}}>No hay jugadores cargados.</p>
                                     <p style={{fontSize:'13px'}}>Usá el botón "Editar Plantel Completo" para agregar jugadores por categoría.</p>
                                 </div>
                             ) : (
-                                <div>
+                                <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(240px, 1fr))', gap:'14px'}}>
                                     {ORDEN_CATS.filter(cat => plantelActual[cat] && plantelActual[cat].length > 0).map(cat => (
-                                        <div key={cat} style={{marginBottom:'12px'}}>
-                                            <div style={{display:'flex', alignItems:'center', gap:'8px', marginBottom:'6px'}}>
-                                                <span style={{fontWeight:'700', color:'#1e3c72', fontSize:'13px'}}>{NOMBRES_CATS[cat]}</span>
-                                                <span style={{background:'#e0f2fe', color:'#0369a1', fontSize:'11px', padding:'2px 8px', borderRadius:'10px'}}>
-                                                    {plantelActual[cat].length} / {MAX_POR_CATEGORIA[cat]}
-                                                </span>
-                                                <button onClick={() => { setJugadorEditando({ categoria: cat }); setShowJugadorModal(true); }}
-                                                    style={{background:'none', border:'none', color:'#0369a1', cursor:'pointer', fontSize:'12px', textDecoration:'underline', padding:'0 4px'}}>
-                                                    + agregar aquí
-                                                </button>
+                                        <div key={cat} style={{background:'white', borderRadius:'10px', border:'1px solid #e2e8f0', overflow:'hidden', boxShadow:'0 1px 4px rgba(0,0,0,0.06)'}}>
+                                            {/* Header de categoría */}
+                                            <div style={{
+                                                padding:'10px 14px',
+                                                background: cat.startsWith('damas') ? 'linear-gradient(135deg,#7c3aed,#a855f7)' : 'linear-gradient(135deg,#1e3c72,#2a5298)',
+                                                display:'flex', justifyContent:'space-between', alignItems:'center'
+                                            }}>
+                                                <span style={{color:'white', fontWeight:'700', fontSize:'13px'}}>{NOMBRES_CATS[cat]}</span>
+                                                <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
+                                                    <span style={{background:'rgba(255,255,255,0.25)', color:'white', fontSize:'11px', padding:'2px 8px', borderRadius:'10px', fontWeight:'700'}}>
+                                                        {plantelActual[cat].length}/{MAX_POR_CATEGORIA[cat]}
+                                                    </span>
+                                                    <button onClick={() => { setJugadorEditando({ categoria: cat }); setShowJugadorModal(true); }}
+                                                        style={{background:'rgba(255,255,255,0.2)', border:'none', color:'white', borderRadius:'6px', padding:'3px 8px', cursor:'pointer', fontSize:'13px', fontWeight:'700'}}>
+                                                        ＋
+                                                    </button>
+                                                </div>
                                             </div>
-                                            <div style={{display:'flex', flexWrap:'wrap', gap:'6px'}}>
-                                                {plantelActual[cat].map(jugador => (
+                                            {/* Lista de jugadores */}
+                                            <div style={{padding:'10px 12px'}}>
+                                                {plantelActual[cat].map((jugador, ji) => (
                                                     <div key={jugador.nombre} style={{
-                                                        background:'white', padding:'6px 12px', borderRadius:'20px',
-                                                        border:'1px solid #e2e8f0', fontSize:'13px', fontWeight:'600',
-                                                        color:'#1e293b', display:'flex', alignItems:'center', gap:'6px'
+                                                        display:'flex', justifyContent:'space-between', alignItems:'center',
+                                                        padding:'7px 10px', marginBottom: ji < plantelActual[cat].length-1 ? '6px' : '0',
+                                                        background:'#f8fafc', borderRadius:'8px', border:'1px solid #e2e8f0'
                                                     }}>
-                                                        {jugador.nombre}
-                                                        {jugador.capitan && <span style={{background:'#f59e0b', color:'white', fontSize:'9px', padding:'1px 5px', borderRadius:'4px'}}>CAP</span>}
-                                                        <button onClick={() => { setJugadorEditando(jugador); setShowJugadorModal(true); }}
-                                                            style={{background:'none', border:'none', cursor:'pointer', fontSize:'13px', padding:'0', opacity:'0.6', lineHeight:1}}>✏️</button>
-                                                        <button onClick={() => eliminarJugador(jugador.nombre, cat)}
-                                                            style={{background:'none', border:'none', cursor:'pointer', fontSize:'12px', padding:'0', opacity:'0.5', color:'#dc2626', lineHeight:1}}>✕</button>
+                                                        <span style={{fontWeight:'600', fontSize:'13px', color:'#1e293b'}}>
+                                                            {jugador.nombre}
+                                                            {jugador.capitan && <span style={{background:'#f59e0b', color:'white', fontSize:'9px', padding:'1px 5px', borderRadius:'4px', marginLeft:'6px', verticalAlign:'middle'}}>CAP</span>}
+                                                        </span>
+                                                        <div style={{display:'flex', gap:'4px'}}>
+                                                            <button onClick={() => { setJugadorEditando(jugador); setShowJugadorModal(true); }}
+                                                                style={{background:'#e0f2fe', color:'#0369a1', border:'none', borderRadius:'5px', padding:'3px 7px', cursor:'pointer', fontSize:'12px'}}>✏️</button>
+                                                            <button onClick={() => eliminarJugador(jugador.nombre, cat)}
+                                                                style={{background:'#fee2e2', color:'#dc2626', border:'none', borderRadius:'5px', padding:'3px 7px', cursor:'pointer', fontSize:'12px'}}>✕</button>
+                                                        </div>
                                                     </div>
                                                 ))}
                                             </div>
@@ -1834,77 +1915,158 @@
                         </div>
                     )}
 
-                    {/* ── SECCIÓN: FECHAS ── */}
+                    {/* ── SECCIÓN: ARMADO DE ZONAS ── */}
                     {equipos.length >= numEquipos && (
-                        <div style={{marginTop: userRole !== 'jugador' ? '20px' : '0px'}}>
-                            {userRole !== 'jugador' && (
-                                <div>
-                                    <h3 style={{marginBottom: '20px', color:'#1e3c72'}}>Configurar Fechas</h3>
-                                    {[1, 2, 3, 4].map(numFecha => (
-                                        <div key={numFecha} className="form-group">
-                                            <label>Rival Fecha {numFecha}</label>
-                                            <select value={fechas[numFecha-1]?.rival || ''} onChange={(e) => { if (e.target.value) { agregarFecha(numFecha, e.target.value); } }}>
-                                                <option value="">Seleccionar rival...</option>
-                                                {equipos.filter(eq => !eq.esGoat).map((eq, idx) => (<option key={idx} value={eq.nombre}>{eq.nombre}</option>))}
-                                            </select>
+                        <div style={{marginTop:'24px', padding:'20px', background:'#f8fafc', borderRadius:'12px', border:'1px solid #e2e8f0'}}>
+                            <h3 style={{color:'#1e3c72', marginBottom:'16px'}}>📋 Armado de Zonas</h3>
+
+                            {userRole === 'jugador' ? (
+                                /* Vista solo lectura para jugador */
+                                <div className="grid-2">
+                                    {['zona1','zona2'].map((z, zi) => (
+                                        <div key={z} style={{background:'white', padding:'16px', borderRadius:'10px', border:'1px solid #e2e8f0'}}>
+                                            <h4 style={{marginBottom:'12px', color:'#1e3c72', borderBottom:'2px solid #d4af37', paddingBottom:'6px'}}>Zona {zi+1}</h4>
+                                            {(zonasConfig[z]||[]).filter(Boolean).length === 0
+                                                ? <p style={{color:'#94a3b8', fontSize:'13px'}}>Sin equipos asignados</p>
+                                                : (zonasConfig[z]||[]).filter(Boolean).map((eq,i) => (
+                                                    <div key={i} style={{padding:'8px 10px', marginBottom:'4px', borderRadius:'6px', background: eq===miEquipoNombre?'#d1fae5':'#f8fafc', border:'1px solid', borderColor: eq===miEquipoNombre?'#6ee7b7':'#e2e8f0', fontWeight: eq===miEquipoNombre?'700':'500', color: eq===miEquipoNombre?'#065f46':'#334155'}}>
+                                                        {eq} {eq===miEquipoNombre&&'⭐'}
+                                                    </div>
+                                                ))
+                                            }
                                         </div>
                                     ))}
-                                    {fechas.filter(Boolean).length === 4 && (<div className="success-message">✓ Todas las fechas configuradas. Ir a la pestaña "Fechas" para armar los equipos.</div>)}
                                 </div>
+                            ) : (
+                                /* Vista edición para admin/capitán */
+                                (() => {
+                                    // Todos los equipos ya asignados en cualquier zona
+                                    const zona1 = zonasConfig.zona1 || [];
+                                    const zona2 = zonasConfig.zona2 || [];
+                                    const asignadosZ1 = new Set(zona1.filter(Boolean));
+                                    const asignadosZ2 = new Set(zona2.filter(Boolean));
+                                    const todosAsignados = new Set([...asignadosZ1, ...asignadosZ2]);
+
+                                    const opcionesParaZ1 = (slotIdx) => equipos.filter(eq => {
+                                        const val = zona1[slotIdx];
+                                        if (eq.nombre === val) return true; // el que ya está siempre disponible
+                                        return !todosAsignados.has(eq.nombre);
+                                    });
+                                    const opcionesParaZ2 = (slotIdx) => equipos.filter(eq => {
+                                        const val = zona2[slotIdx];
+                                        if (eq.nombre === val) return true;
+                                        return !todosAsignados.has(eq.nombre);
+                                    });
+
+                                    const setZona = (zona, idx, valor) => {
+                                        const n = { zona1: [...zona1], zona2: [...zona2] };
+                                        n[zona][idx] = valor;
+                                        setZonasConfig(n);
+                                    };
+
+                                    const z1completa = zona1.filter(Boolean).length === 5;
+                                    const z2completa = zona2.filter(Boolean).length === 5;
+
+                                    return (
+                                        <div>
+                                            <div className="grid-2" style={{gap:'20px'}}>
+                                                {/* ZONA 1 */}
+                                                <div style={{background:'white', padding:'16px', borderRadius:'10px', border:`2px solid ${z1completa?'#10b981':'#e2e8f0'}`}}>
+                                                    <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'12px'}}>
+                                                        <strong style={{color:'#1e3c72'}}>Zona 1</strong>
+                                                        <span style={{fontSize:'12px', fontWeight:'700', padding:'2px 8px', borderRadius:'10px', background: z1completa?'#dcfce7':'#f1f5f9', color: z1completa?'#166534':'#64748b'}}>
+                                                            {zona1.filter(Boolean).length}/5 {z1completa&&'✓'}
+                                                        </span>
+                                                    </div>
+                                                    {[0,1,2,3,4].map(idx => (
+                                                        <div key={idx} style={{marginBottom:'8px'}}>
+                                                            <select value={zona1[idx]||''} onChange={e => setZona('zona1', idx, e.target.value)}
+                                                                style={{width:'100%', padding:'8px 10px', border:'1px solid #e2e8f0', borderRadius:'8px', fontSize:'14px', background: zona1[idx]?'#f0fdf4':'white'}}>
+                                                                <option value="">— Equipo {idx+1} —</option>
+                                                                {opcionesParaZ1(idx).map(eq => (
+                                                                    <option key={eq.nombre} value={eq.nombre}>{eq.nombre}{eq.esGoat?' ⭐':''}</option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                                {/* ZONA 2 */}
+                                                <div style={{background:'white', padding:'16px', borderRadius:'10px', border:`2px solid ${z2completa?'#10b981':'#e2e8f0'}`}}>
+                                                    <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'12px'}}>
+                                                        <strong style={{color:'#1e3c72'}}>Zona 2</strong>
+                                                        <span style={{fontSize:'12px', fontWeight:'700', padding:'2px 8px', borderRadius:'10px', background: z2completa?'#dcfce7':'#f1f5f9', color: z2completa?'#166534':'#64748b'}}>
+                                                            {zona2.filter(Boolean).length}/5 {z2completa&&'✓'}
+                                                        </span>
+                                                    </div>
+                                                    {[0,1,2,3,4].map(idx => (
+                                                        <div key={idx} style={{marginBottom:'8px'}}>
+                                                            <select value={zona2[idx]||''} onChange={e => setZona('zona2', idx, e.target.value)}
+                                                                style={{width:'100%', padding:'8px 10px', border:'1px solid #e2e8f0', borderRadius:'8px', fontSize:'14px', background: zona2[idx]?'#f0fdf4':'white'}}>
+                                                                <option value="">— Equipo {idx+1} —</option>
+                                                                {opcionesParaZ2(idx).map(eq => (
+                                                                    <option key={eq.nombre} value={eq.nombre}>{eq.nombre}{eq.esGoat?' ⭐':''}</option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            {/* Botón generar cruces — solo cuando ambas zonas completas */}
+                                            {z1completa && z2completa && (
+                                                <div style={{marginTop:'16px', textAlign:'center'}}>
+                                                    <button className="btn btn-success btn-responsive" onClick={() => setShowAsignarFechasModal(true)}>
+                                                        🏆 Generar Cruces de Zonas
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })()
                             )}
-
-                            <div style={{marginTop: userRole !== 'jugador' ? '40px' : '0px', paddingTop: userRole !== 'jugador' ? '30px' : '0px', borderTop: userRole !== 'jugador' ? '2px solid #ddd' : 'none'}}>
-                                <h3 style={{marginBottom: '20px'}}>Armado de Zonas</h3>
-                                
-                                {userRole === 'jugador' ? (
-                                    <div className="grid-2">
-                                        <div style={{background: '#f8f9fa', padding: '20px', borderRadius: '8px', border: '1px solid #e2e8f0'}}>
-                                            <h4 style={{marginBottom: '15px', color: '#1e3c72', borderBottom: '2px solid #d4af37', paddingBottom: '5px'}}>Zona 1</h4>
-                                            <ul style={{listStyle: 'none', padding: 0}}>
-                                                {(zonasConfig.zona1 || []).map((eq, idx) => eq ? <li key={idx} style={{padding: '8px 0', borderBottom: '1px solid #ddd', fontWeight: eq===miEquipoNombre?'bold':'normal', color: eq===miEquipoNombre?'#10b981':'#333'}}>{eq} {eq===miEquipoNombre&&'⭐'}</li> : null)}
-                                            </ul>
-                                        </div>
-                                        <div style={{background: '#f8f9fa', padding: '20px', borderRadius: '8px', border: '1px solid #e2e8f0'}}>
-                                            <h4 style={{marginBottom: '15px', color: '#1e3c72', borderBottom: '2px solid #d4af37', paddingBottom: '5px'}}>Zona 2</h4>
-                                            <ul style={{listStyle: 'none', padding: 0}}>
-                                                {(zonasConfig.zona2 || []).map((eq, idx) => eq ? <li key={idx} style={{padding: '8px 0', borderBottom: '1px solid #ddd', fontWeight: eq===miEquipoNombre?'bold':'normal', color: eq===miEquipoNombre?'#10b981':'#333'}}>{eq} {eq===miEquipoNombre&&'⭐'}</li> : null)}
-                                            </ul>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="grid-2">
-                                        <div>
-                                            <label><strong>Zona 1</strong></label>
-                                            {[0, 1, 2, 3, 4].map(idx => (
-                                                <div key={idx} className="form-group">
-                                                    <select value={(zonasConfig.zona1 || [])[idx] || ''} onChange={(e) => { const n = {...zonasConfig, zona1: [...(zonasConfig.zona1||[])], zona2: [...(zonasConfig.zona2||[])]}; n.zona1[idx] = e.target.value; setZonasConfig(n); }}>
-                                                        <option value="">Seleccionar equipo...</option>
-                                                        {equipos.map((eq, eqIdx) => (<option key={eqIdx} value={eq.nombre}>{eq.nombre}</option>))}
-                                                    </select>
-                                                </div>
-                                            ))}
-                                        </div>
-                                        <div>
-                                            <label><strong>Zona 2</strong></label>
-                                            {[0, 1, 2, 3, 4].map(idx => (
-                                                <div key={idx} className="form-group">
-                                                    <select value={(zonasConfig.zona2 || [])[idx] || ''} onChange={(e) => { const n = {...zonasConfig, zona1: [...(zonasConfig.zona1||[])], zona2: [...(zonasConfig.zona2||[])]}; n.zona2[idx] = e.target.value; setZonasConfig(n); }}>
-                                                        <option value="">Seleccionar equipo...</option>
-                                                        {equipos.map((eq, eqIdx) => (<option key={eqIdx} value={eq.nombre}>{eq.nombre}</option>))}
-                                                    </select>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {userRole !== 'jugador' && (zonasConfig.zona1||[]).filter(e => e).length === 5 && (zonasConfig.zona2||[]).filter(e => e).length === 5 && (
-                                    <div style={{marginTop: '20px'}}>
-                                        <button className="btn btn-success btn-responsive" onClick={() => setShowAsignarFechasModal(true)}>Generar Cruces de Zonas</button>
-                                    </div>
-                                )}
-                            </div>
                         </div>
+                    )}
+
+                    {/* ── SECCIÓN: FECHAS (después de zonas completas) ── */}
+                    {equipos.length >= numEquipos && userRole !== 'jugador' && (
+                        (() => {
+                            const zona1 = zonasConfig.zona1 || [];
+                            const zona2 = zonasConfig.zona2 || [];
+                            const z1ok = zona1.filter(Boolean).length === 5;
+                            const z2ok = zona2.filter(Boolean).length === 5;
+                            if (!z1ok || !z2ok) return null;
+
+                            // Rivales posibles = todos excepto mi equipo
+                            const rivales = equipos.filter(eq => !eq.esGoat);
+                            // Ya usados en otras fechas
+                            const rivalesUsados = fechas.filter(Boolean).map(f => f.rival);
+
+                            return (
+                                <div style={{marginTop:'24px', padding:'20px', background:'#f8fafc', borderRadius:'12px', border:'1px solid #e2e8f0'}}>
+                                    <h3 style={{color:'#1e3c72', marginBottom:'4px'}}>📅 Configurar Fechas</h3>
+                                    <p style={{color:'#64748b', fontSize:'13px', marginBottom:'16px'}}>Asigná el rival de cada fecha. Solo aparecen rivales no asignados aún.</p>
+                                    {[1,2,3,4].map(numFecha => {
+                                        const fechaActual = fechas[numFecha-1];
+                                        const rivalActual = fechaActual?.rival || '';
+                                        const disponibles = rivales.filter(eq => eq.nombre === rivalActual || !rivalesUsados.includes(eq.nombre));
+                                        return (
+                                            <div key={numFecha} style={{display:'flex', alignItems:'center', gap:'12px', marginBottom:'12px', flexWrap:'wrap'}}>
+                                                <span style={{minWidth:'80px', fontWeight:'700', color:'#1e3c72', fontSize:'14px'}}>Fecha {numFecha}</span>
+                                                <select value={rivalActual} onChange={e => { if(e.target.value) agregarFecha(numFecha, e.target.value); }}
+                                                    style={{flex:1, padding:'9px 12px', border:`2px solid ${rivalActual?'#10b981':'#e2e8f0'}`, borderRadius:'8px', fontSize:'14px', background: rivalActual?'#f0fdf4':'white'}}>
+                                                    <option value="">— Seleccionar rival —</option>
+                                                    {disponibles.map(eq => <option key={eq.nombre} value={eq.nombre}>{eq.nombre}</option>)}
+                                                </select>
+                                                {rivalActual && <span style={{color:'#10b981', fontWeight:'700', fontSize:'16px'}}>✓</span>}
+                                            </div>
+                                        );
+                                    })}
+                                    {fechas.filter(Boolean).length === 4 && (
+                                        <div className="success-message" style={{marginTop:'8px'}}>✓ Todas las fechas configuradas. Ir a "Fechas" para armar los equipos.</div>
+                                    )}
+                                </div>
+                            );
+                        })()
                     )}
 
                     {showEquiposModal && (
