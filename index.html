@@ -2337,7 +2337,30 @@
                 if (idx1 !== -1) { nuevasFechas[fechaIdx].partidos[idx1].horario = horarioActual.hora; nuevasFechas[fechaIdx].partidos[idx1].dia = horarioActual.dia; nuevasFechas[fechaIdx].partidos[idx1].posicion = 1; }
                 const idx2 = nuevasFechas[fechaIdx].partidos.findIndex(p => p.id === parseInt(horarioActual.partido2));
                 if (idx2 !== -1) { nuevasFechas[fechaIdx].partidos[idx2].horario = horarioActual.hora; nuevasFechas[fechaIdx].partidos[idx2].dia = horarioActual.dia; nuevasFechas[fechaIdx].partidos[idx2].posicion = 2; }
-                setFechas(nuevasFechas); setEditandoHorario(null); setShowHorarioModal(false);
+                
+                setFechas(nuevasFechas); 
+
+                // MAGIA RECUPERADA: Lógica de "Guardar y Continuar"
+                const partidosSinAsignarAhora = PARTIDOS.filter(p => !nuevasFechas[fechaIdx].partidos.find(fp => fp.id === p.id)?.horario);
+
+                if (!editandoHorario && partidosSinAsignarAhora.length >= 2) {
+                    // Buscar el próximo horario libre automáticamente
+                    const horariosUsados = {}; 
+                    nuevasFechas[fechaIdx].partidos.forEach(p => { if (p.horario) horariosUsados[`${p.dia}-${p.horario}`] = true; });
+                    const horariosPosibles = [ { dia: 'sabado', hora: '09:00' }, { dia: 'sabado', hora: '10:30' }, { dia: 'sabado', hora: '12:00' }, { dia: 'sabado', hora: '13:30' }, { dia: 'sabado', hora: '15:00' }, { dia: 'sabado', hora: '16:30' }, { dia: 'sabado', hora: '17:45' }, { dia: 'domingo', hora: '09:00' }, { dia: 'domingo', hora: '10:30' }, { dia: 'domingo', hora: '12:00' }, { dia: 'domingo', hora: '13:30' }, { dia: 'domingo', hora: '15:00' } ];
+                    const siguienteHorario = horariosPosibles.find(h => !horariosUsados[`${h.dia}-${h.hora}`]);
+                    
+                    if (siguienteHorario) {
+                        setHorarioActual({ dia: siguienteHorario.dia, hora: siguienteHorario.hora, partido1: '', partido2: '' });
+                    } else {
+                        setHorarioActual({ dia: 'sabado', hora: '09:00', partido1: '', partido2: '' });
+                        setEditandoHorario(null); 
+                        setShowHorarioModal(false);
+                    }
+                } else {
+                    setEditandoHorario(null); 
+                    setShowHorarioModal(false);
+                }
             };
 
             const eliminarHorario = (dia, hora) => {
