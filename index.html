@@ -962,8 +962,8 @@
             const calcularEstadisticas = () => {
                 const stats = { jugadores: {}, parejas: {} };
                 
-                // Leemos el plantel dinámico de la nube (configApp.plantel)
-                const todosJugadores = configApp?.plantel ? Object.values(configApp.plantel).flat() : [];
+                // Leemos el plantel dinámico de la nube (usando 'config' en lugar de 'configApp')
+                const todosJugadores = config?.plantel ? Object.values(config.plantel).flat() : [];
                 
                 todosJugadores.forEach(jugador => {
                     stats.jugadores[jugador.nombre] = { singles: { ganados: 0, perdidos: 0 }, dobles: { ganados: 0, perdidos: 0 }, total: { ganados: 0, perdidos: 0 } };
