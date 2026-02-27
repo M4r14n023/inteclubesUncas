@@ -372,7 +372,7 @@
         }
 
         // ── Motor de estadísticas ──
-        function calcularEstadisticas(fechas, resultados, plantel) {
+        function calcularEstadisticas(fechas, resultados, plantel, userRole) {
             const stats = { jugadores: {}, parejas: {} };
             const todosJugadores = Object.values(plantel).flat();
 
@@ -388,6 +388,10 @@
 
             fechas.forEach((fecha, fechaIdx) => {
                 if (!fecha || !fecha.partidos) return;
+
+                // 🔒 NUEVO FILTRO DE SEGURIDAD: Ocultar borradores para los jugadores
+                if (userRole === 'jugador' && !fecha.convocada) return;
+
                 fecha.partidos.forEach(partido => {
                     if (!partido.jugadores || partido.jugadores.length === 0) return;
                     const key    = `${fechaIdx}-${partido.id}`;
@@ -893,6 +897,9 @@
             const [loadStatus, setLoadStatus] = useState('loading'); // 'loading' | 'ready' | 'error'
             const [lastSync,   setLastSync]  = useState(null);
 
+            // 🔒 NUEVO: LEER EL ROL USANDO EL ID_PROYECTO DINÁMICO
+            const userRole = localStorage.getItem(`${ID_PROYECTO}_user_role`) || null;
+
             useEffect(() => {
                 const cargarTodo = async () => {
                     try {
@@ -950,12 +957,13 @@
                     }
                 });
                 return () => ref.off('value');
-            }, []);
+            }, [plantel]); // <--- Agregamos plantel a las dependencias por seguridad
 
             // Exportación a CSV
             const exportarCSV = () => {
                 if (!plantel) return;
-                const s = calcularEstadisticas(fechas, resultados, plantel);
+                // 🔒 Pasamos el userRole al motor para que no filtre convocatorias en el Excel de los jugadores
+                const s = calcularEstadisticas(fechas, resultados, plantel, userRole);
                 let csv = `\uFEFFESTADISTICAS INDIVIDUALES — ${equipoNombre}\nCategoria;Jugador;Singles G;Singles P;Dobles G;Dobles P;Total G;Total P;% Victorias\n`;
                 Object.entries(s.jugadores).forEach(([nombre, data]) => {
                     const total = data.total.ganados + data.total.perdidos;
@@ -1002,7 +1010,8 @@
                 );
             }
 
-            const stats = calcularEstadisticas(fechas, resultados, plantel);
+            // 🔒 Calculamos las stats pasando el userRole
+            const stats = calcularEstadisticas(fechas, resultados, plantel, userRole);
             const totalPartidos = Object.values(stats.jugadores).reduce((s, j) => s + j.total.ganados + j.total.perdidos, 0);
             const totalGanados  = Object.values(stats.jugadores).reduce((s, j) => s + j.total.ganados, 0);
 
@@ -1053,6 +1062,22 @@
                         {subTab === 'ranking'    && <TabRanking    stats={stats} />}
                         {subTab === 'general'    && <TabGeneral    stats={stats} />}
                     </div>
+
+                    {/* --- FOOTER / DERECHOS DE AUTOR --- */}
+                    <div style={{ 
+                        textAlign: 'center', 
+                        padding: '20px', 
+                        borderTop: '1px solid #e2e8f0', 
+                        background: '#f8f9fa', 
+                        color: '#64748b', 
+                        fontSize: '13px',
+                        marginTop: '30px',
+                        borderRadius: '0 0 16px 16px'
+                    }}>
+                        &copy; {new Date().getFullYear()} <strong>Desarrollado por Mariano Lumbreras</strong>. Todos los derechos reservados.<br/>
+                        <span style={{fontSize: '11px', opacity: 0.8}}>Sistema de Gestión de Torneos Interclubes</span>
+                    </div>
+
                 </div>
             );
         }

@@ -328,7 +328,7 @@
         ];
         const MAX_POR_CATEGORIA = Object.fromEntries(CATEGORIAS_DISPONIBLES.map(c => [c.value, c.max]));
 
-        // ============================================================
+         // ============================================================
         //  🧙 SETUP WIZARD — Se muestra cuando el equipo es nuevo
         // ============================================================
         function SetupWizard({ onSetupComplete }) {
@@ -404,7 +404,8 @@
                 <div style={{
                     minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
                     background: 'linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%)',
-                    padding: '20px', fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
+                    padding: '20px', paddingBottom: '80px', fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+                    position: 'relative'
                 }}>
                     <div style={{
                         background: 'white', borderRadius: '20px', padding: '40px',
@@ -448,7 +449,7 @@
                             <div>
                                 <h2 style={{color:'#203a43', marginBottom:'6px', fontSize:'20px'}}>Paso 1 — Tu Equipo</h2>
                                 <p style={{color:'#64748b', fontSize:'14px', marginBottom:'24px'}}>
-                                    Este nombre reemplazará "GOAT" en toda la aplicación.
+                                    Este nombre se utilizará en toda la aplicación.
                                 </p>
                                 <div className="form-group">
                                     <label>Nombre del Equipo Principal *</label>
@@ -585,6 +586,13 @@
                             )}
                         </div>
                     </div>
+
+                    {/* --- FOOTER PANTALLAS OSCURAS --- */}
+                    <div style={{ position: 'absolute', bottom: '20px', left: 0, textAlign: 'center', color: 'rgba(255,255,255,0.5)', fontSize: '13px', width: '100%' }}>
+                        &copy; {new Date().getFullYear()} <strong>Desarrollado por Mariano Lumbreras</strong>. Todos los derechos reservados.<br/>
+                        <span style={{fontSize: '11px', opacity: 0.8}}>Sistema de Gestión de Torneos Interclubes</span>
+                    </div>
+
                 </div>
             );
         }
@@ -609,9 +617,9 @@
                 }
             };
 
-            return (
-                <div className="container" style={{maxWidth: '100%', height: '100vh', display: 'flex', flexDirection: 'column', background: 'linear-gradient(135deg, #1a1a1a 0%, #2d2416 100%)', alignItems: 'center', justifyContent: 'center'}}>
-                    <div className="login-container">
+           return (
+                <div className="container" style={{maxWidth: '100%', minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'linear-gradient(135deg, #1a1a1a 0%, #2d2416 100%)', alignItems: 'center', justifyContent: 'center', padding: '20px', paddingBottom: '80px', position: 'relative'}}>
+                    <div className="login-container" style={{ margin: '0 auto', width: '100%', maxWidth: '500px' }}>
                         <img src="icon-192.png" alt="Logo" style={{width: '100px', marginBottom: '20px'}} />
                         <h1 style={{color: '#1e3c72', marginBottom: '10px'}}>Bienvenido a {nombreEquipo}</h1>
                         <p style={{color: '#666', marginBottom: '30px'}}>Seleccioná tu perfil para ingresar</p>
@@ -640,6 +648,13 @@
                             </div>
                         )}
                     </div>
+
+                    {/* --- FOOTER PANTALLAS OSCURAS --- */}
+                    <div style={{ position: 'absolute', bottom: '20px', left: 0, textAlign: 'center', color: 'rgba(255,255,255,0.5)', fontSize: '13px', width: '100%' }}>
+                        &copy; {new Date().getFullYear()} <strong>Desarrollado por Mariano Lumbreras</strong>. Todos los derechos reservados.<br/>
+                        <span style={{fontSize: '11px', opacity: 0.8}}>Sistema de Gestión de Torneos Interclubes</span>
+                    </div>
+
                 </div>
             );
         }
@@ -817,7 +832,8 @@
             partidos: PARTIDOS.map(p => ({ ...p, jugadores: [], horario: '', dia: 'sabado', ganado: false })), 
             partidoBonus: null, 
             categoriasHabilitadas: { caballeros_5ta_en_4ta: false, caballeros_4ta_en_3ra: false, caballeros_3ra_en_2da: false, damas_c_en_b: false, damas_b_en_a: false }, 
-            jugadoresHabilitados: [] 
+            jugadoresHabilitados: [],
+            convocada: false // <--- NUEVO ESTADO DE PUBLICACIÓN 
         };
         
         nuevasFechas[numFecha - 1] = nuevaFecha;
@@ -945,14 +961,20 @@
 
             const calcularEstadisticas = () => {
                 const stats = { jugadores: {}, parejas: {} };
-                const plantel = config?.plantel || {};
-                const todosJugadores = Object.values(plantel).flat();
+                
+                // Leemos el plantel dinámico de la nube (configApp.plantel)
+                const todosJugadores = configApp?.plantel ? Object.values(configApp.plantel).flat() : [];
+                
                 todosJugadores.forEach(jugador => {
                     stats.jugadores[jugador.nombre] = { singles: { ganados: 0, perdidos: 0 }, dobles: { ganados: 0, perdidos: 0 }, total: { ganados: 0, perdidos: 0 } };
                 });
                 
                 fechas.forEach((fecha, fechaIdx) => {
                     if (!fecha || !fecha.partidos) return;
+
+                    // 🔒 NUEVO FILTRO DE SEGURIDAD: Si sos jugador y la fecha es borrador, no entra en estadísticas
+                    if (userRole === 'jugador' && !fecha.convocada) return;
+
                     fecha.partidos.forEach(partido => {
                         if (partido.jugadores && partido.jugadores.length > 0) {
                             const key = `${fechaIdx}-${partido.id}`; const ganado = resultados[key] || false; const esSingle = partido.numJugadores === 1;
@@ -1015,7 +1037,7 @@
                     </div>
 
                     <div className="content">
-                        {activeTab === 'busqueda' && <BusquedaTab fechas={fechas} plantel={config?.plantel || {}} />}
+                        {activeTab === 'busqueda' && <BusquedaTab fechas={fechas} plantel={config?.plantel || {}} userRole={userRole} />}
                         {activeTab === 'estadisticas' && <EstadisticasTab calcularEstadisticas={calcularEstadisticas} />}
                         
                         {activeTab === 'configuracion' && (
@@ -1044,7 +1066,7 @@
                                 setCrucesFinales={setCrucesFinales} zonasConfig={zonasConfig} setZonasConfig={setZonasConfig} 
                             />
                         )}
-                        {activeTab === 'admin' && userRole === 'admin' && (
+                       {activeTab === 'admin' && userRole === 'admin' && (
                             <AdminTab 
                                 numEquipos={numEquipos} equipos={equipos} baseEquipos={baseEquipos} fechas={fechas} resultados={resultados} posiciones={posiciones} crucesFinales={crucesFinales} zonasConfig={zonasConfig} playoffAvances={playoffAvances}
                                 setNumEquipos={setNumEquipos} setEquipos={setEquipos} setBaseEquipos={setBaseEquipos} setFechas={setFechas} setResultados={setResultados} setPosiciones={setPosiciones} setCrucesFinales={setCrucesFinales} setZonasConfig={setZonasConfig} setPlayoffAvances={setPlayoffAvances}
@@ -1052,16 +1074,37 @@
                             />
                         )}
                     </div>
+                    {/* --- FOOTER / DERECHOS DE AUTOR --- */}
+                    <div style={{ 
+                        textAlign: 'center', 
+                        padding: '20px', 
+                        borderTop: '1px solid #e2e8f0', 
+                        background: '#f8f9fa', 
+                        color: '#64748b', 
+                        fontSize: '13px' 
+                    }}>
+                        &copy; {new Date().getFullYear()} <strong>Desarrollado por Mariano Lumbreras</strong>. Todos los derechos reservados.<br/>
+                        <span style={{fontSize: '11px', opacity: 0.8}}>Sistema de Gestión de Torneos Interclubes</span>
+                    </div>
+
                 </div>
             );
         }
 
         // COMPONENTES
 
-        function BusquedaTab({ fechas, plantel }) {
+        function BusquedaTab({ fechas, plantel, userRole }) {
             const [jugadorSeleccionado, setJugadorSeleccionado] = useState('');
             const [fechaSeleccionada, setFechaSeleccionada] = useState('todas');
             const jugadores = Object.values(plantel).flat().map(j => j.nombre).sort((a, b) => a.localeCompare(b));
+
+            // Filtramos las fechas que el usuario tiene permiso para ver
+            const fechasVisibles = fechas.filter((f, idx) => {
+                if (!f) return false;
+                const coincideFecha = fechaSeleccionada === 'todas' || parseInt(fechaSeleccionada) === idx;
+                const tienePermiso = userRole !== 'jugador' || f.convocada;
+                return coincideFecha && tienePermiso;
+            });
 
             return (
                 <div>
@@ -1078,7 +1121,11 @@
                             <label>Filtrar por Fecha</label>
                             <select value={fechaSeleccionada} onChange={(e) => setFechaSeleccionada(e.target.value)}>
                                 <option value="todas">Todas las fechas</option>
-                                {fechas.map((f, idx) => <option key={idx} value={idx}>Fecha {f.numero} vs {f.rival}</option>)}
+                                {fechas.map((f, idx) => {
+                                    if (!f) return null;
+                                    const etiqueta = (userRole === 'jugador' && !f.convocada) ? `Fecha ${f.numero} (Oculta)` : `Fecha ${f.numero} vs ${f.rival}`;
+                                    return <option key={idx} value={idx} disabled={userRole === 'jugador' && !f.convocada}>{etiqueta}</option>;
+                                })}
                             </select>
                         </div>
                     </div>
@@ -1086,7 +1133,7 @@
                     {jugadorSeleccionado ? (
                         <div>
                             <h3 style={{marginBottom: '20px', color: '#1e3c72'}}>Partidos asignados para {jugadorSeleccionado}</h3>
-                            {fechas.filter((_, idx) => fechaSeleccionada === 'todas' || parseInt(fechaSeleccionada) === idx).map((fecha, fechaIdx) => {
+                            {fechasVisibles.map((fecha, fechaIdx) => {
                                 if (!fecha || !fecha.partidos) return null;
                                 const partidosDelJugador = fecha.partidos.filter(p => p.jugadores && p.jugadores.includes(jugadorSeleccionado) && p.horario);
                                 if (partidosDelJugador.length === 0) return null;
@@ -1123,9 +1170,9 @@
                                 );
                             })}
                             
-                            {fechas.filter((_, idx) => fechaSeleccionada === 'todas' || parseInt(fechaSeleccionada) === idx).every(fecha => 
+                            {fechasVisibles.every(fecha => 
                                 !fecha.partidos || fecha.partidos.filter(p => p.jugadores && p.jugadores.includes(jugadorSeleccionado) && p.horario).length === 0
-                            ) && (<div className="warning" style={{textAlign: 'center', padding: '20px'}}>{jugadorSeleccionado} no está convocado para {fechaSeleccionada === 'todas' ? 'ninguna fecha' : 'esta fecha'}.</div>)}
+                            ) && (<div className="warning" style={{textAlign: 'center', padding: '20px'}}>{jugadorSeleccionado} no está convocado en ninguna fecha pública actual.</div>)}
                         </div>
                     ) : (
                         <div style={{textAlign: 'center', padding: '40px', background: '#f8f9fa', borderRadius: '8px', color: '#64748b', border: '2px dashed #cbd5e1'}}>
@@ -2229,7 +2276,7 @@
             );
         }
 
-        function FechasTab({ userRole, fechas, procesarHorarios, actualizarJugadores, contarPartidosJugador, generarPDF, setFechas, plantel }) {
+       function FechasTab({ userRole, fechas, procesarHorarios, actualizarJugadores, contarPartidosJugador, generarPDF, setFechas, plantel }) {
             const [fechaSeleccionada, setFechaSeleccionada] = useState(0);
             const [showHorarioModal, setShowHorarioModal] = useState(false);
             const [horarioActual, setHorarioActual] = useState({ dia: 'sabado', hora: '09:00', partido1: '', partido2: '' });
@@ -2237,9 +2284,20 @@
             const [showCategoriasModal, setShowCategoriasModal] = useState(false);
             const [categoriasTemp, setCategoriasTemp] = useState({});
             const [jugadoresHabilitadosTemp, setJugadoresHabilitadosTemp] = useState([]);
+            
+            // ESTADO VISTA INTERNA
+            const [vistaInterna, setVistaInterna] = useState('convocatoria');
+
+            const fecha = fechas[fechaSeleccionada];
+
+            // Forzar vista a Cronograma si es Jugador y no está publicada
+            useEffect(() => {
+                if (fecha && userRole === 'jugador' && !fecha.convocada) {
+                    setVistaInterna('cronograma');
+                }
+            }, [fecha, userRole]);
 
             if (fechas.length === 0) return <div className="warning">Por favor, que un Capitán configure primero los equipos y las fechas.</div>;
-            const fecha = fechas[fechaSeleccionada];
 
             const abrirCategoriasModal = () => {
                 setCategoriasTemp(fecha.categoriasHabilitadas || { caballeros_5ta_en_4ta: false, caballeros_4ta_en_3ra: false, caballeros_3ra_en_2da: false, damas_c_en_b: false, damas_b_en_a: false });
@@ -2250,6 +2308,12 @@
                 const existe = jugadoresHabilitadosTemp.find(j => j.jugador === nombreJugador && j.categoriaDestino === categoriaDestino);
                 if (existe) setJugadoresHabilitadosTemp(jugadoresHabilitadosTemp.filter(j => !(j.jugador === nombreJugador && j.categoriaDestino === categoriaDestino)));
                 else setJugadoresHabilitadosTemp([...jugadoresHabilitadosTemp, { jugador: nombreJugador, categoriaDestino }]);
+            };
+
+            const toggleConvocatoria = () => {
+                const nuevasFechas = [...fechas];
+                nuevasFechas[fechaSeleccionada].convocada = !nuevasFechas[fechaSeleccionada].convocada;
+                setFechas(nuevasFechas);
             };
 
             const getPartidosDisponibles = (excluirPartido = null) => {
@@ -2273,15 +2337,7 @@
                 if (idx1 !== -1) { nuevasFechas[fechaIdx].partidos[idx1].horario = horarioActual.hora; nuevasFechas[fechaIdx].partidos[idx1].dia = horarioActual.dia; nuevasFechas[fechaIdx].partidos[idx1].posicion = 1; }
                 const idx2 = nuevasFechas[fechaIdx].partidos.findIndex(p => p.id === parseInt(horarioActual.partido2));
                 if (idx2 !== -1) { nuevasFechas[fechaIdx].partidos[idx2].horario = horarioActual.hora; nuevasFechas[fechaIdx].partidos[idx2].dia = horarioActual.dia; nuevasFechas[fechaIdx].partidos[idx2].posicion = 2; }
-                setFechas(nuevasFechas); setEditandoHorario(null);
-                const partidosSinAsignar = PARTIDOS.filter(p => { const partidoAsignado = nuevasFechas[fechaIdx].partidos.find(fp => fp.id === p.id); return !partidoAsignado.horario; });
-                if (partidosSinAsignar.length >= 2) {
-                    const horariosUsados = {}; nuevasFechas[fechaIdx].partidos.forEach(p => { if (p.horario) horariosUsados[`${p.dia}-${p.horario}`] = true; });
-                    const horariosPosibles = [ { dia: 'sabado', hora: '09:00' }, { dia: 'sabado', hora: '10:30' }, { dia: 'sabado', hora: '12:00' }, { dia: 'sabado', hora: '13:30' }, { dia: 'sabado', hora: '15:00' }, { dia: 'sabado', hora: '16:30' }, { dia: 'sabado', hora: '17:45' }, { dia: 'domingo', hora: '09:00' }, { dia: 'domingo', hora: '10:30' }, { dia: 'domingo', hora: '12:00' }, { dia: 'domingo', hora: '13:30' }, { dia: 'domingo', hora: '15:00' } ];
-                    const siguienteHorario = horariosPosibles.find(h => !horariosUsados[`${h.dia}-${h.hora}`]);
-                    if (siguienteHorario) setHorarioActual({ dia: siguienteHorario.dia, hora: siguienteHorario.hora, partido1: '', partido2: '' }); 
-                    else { setShowHorarioModal(false); setHorarioActual({ dia: 'sabado', hora: '09:00', partido1: '', partido2: '' }); }
-                } else { setShowHorarioModal(false); setHorarioActual({ dia: 'sabado', hora: '09:00', partido1: '', partido2: '' }); }
+                setFechas(nuevasFechas); setEditandoHorario(null); setShowHorarioModal(false);
             };
 
             const eliminarHorario = (dia, hora) => {
@@ -2300,24 +2356,33 @@
             };
 
             const partidosPorHorario = {};
-            fecha.partidos.forEach(partido => { if (partido.horario) { const key = `${partido.dia}-${partido.horario}`; if (!partidosPorHorario[key]) partidosPorHorario[key] = { dia: partido.dia, hora: partido.horario, partidos: [] }; partidosPorHorario[key].partidos.push(partido); } });
-            const partidosSinAsignar = PARTIDOS.filter(p => { const partidoAsignado = fecha.partidos.find(fp => fp.id === p.id); return !partidoAsignado.horario; });
-            const categoriasHabilitadasCount = fecha.jugadoresHabilitados ? fecha.jugadoresHabilitados.length : 0;
+            if (fecha && fecha.partidos) {
+                fecha.partidos.forEach(partido => { if (partido.horario) { const key = `${partido.dia}-${partido.horario}`; if (!partidosPorHorario[key]) partidosPorHorario[key] = { dia: partido.dia, hora: partido.horario, partidos: [] }; partidosPorHorario[key].partidos.push(partido); } });
+            }
+            const partidosSinAsignar = fecha && fecha.partidos ? PARTIDOS.filter(p => { const partidoAsignado = fecha.partidos.find(fp => fp.id === p.id); return !partidoAsignado.horario; }) : [];
+            const categoriasHabilitadasCount = fecha && fecha.jugadoresHabilitados ? fecha.jugadoresHabilitados.length : 0;
+
+            if (!fecha) return null;
 
             return (
                 <div>
                     <h2 style={{marginBottom: '20px', color: '#1e3c72'}}>Convocatorias</h2>
                     
                     <div style={{display: 'flex', gap: '10px', marginBottom: '25px', flexWrap: 'wrap'}}>
-                        {fechas.map((f, idx) => (
-                            <button 
-                                key={idx} className={`btn ${fechaSeleccionada === idx ? 'btn-primary' : ''}`}
-                                style={{ background: fechaSeleccionada === idx ? '#d4af37' : '#e2e8f0', color: fechaSeleccionada === idx ? '#1a1a1a' : '#475569', margin: 0, flex: '1 1 calc(50% - 10px)', minWidth: '130px', padding: '10px' }}
-                                onClick={() => setFechaSeleccionada(idx)}
-                            >
-                                Fecha {f.numero} <br/><span style={{fontSize: '13px', fontWeight: 'normal'}}>vs {f.rival}</span>
-                            </button>
-                        ))}
+                        {fechas.map((f, idx) => {
+                            if (!f) return null;
+                            const isOcultaParaJugador = userRole === 'jugador' && !f.convocada;
+                            return (
+                                <button 
+                                    key={idx} className={`btn ${fechaSeleccionada === idx ? 'btn-primary' : ''}`}
+                                    style={{ background: fechaSeleccionada === idx ? '#d4af37' : '#e2e8f0', color: fechaSeleccionada === idx ? '#1a1a1a' : '#475569', margin: 0, flex: '1 1 calc(50% - 10px)', minWidth: '130px', padding: '10px' }}
+                                    onClick={() => setFechaSeleccionada(idx)}
+                                >
+                                    Fecha {f.numero} {userRole !== 'jugador' && (!f.convocada ? '🔒' : '📢')} <br/>
+                                    <span style={{fontSize: '13px', fontWeight: 'normal'}}>{isOcultaParaJugador ? '(Oculta)' : `vs ${f.rival}`}</span>
+                                </button>
+                            );
+                        })}
                     </div>
 
                     <div className="date-section">
@@ -2325,6 +2390,16 @@
                         
                         {userRole !== 'jugador' && (
                             <>
+                                {/* PANEL DE PUBLICACIÓN EXCLUSIVO CAPITAN/ADMIN */}
+                                <div style={{ marginBottom: '20px', padding: '15px', background: fecha.convocada ? '#d1fae5' : '#fee2e2', borderRadius: '8px', border: `2px solid ${fecha.convocada ? '#10b981' : '#ef4444'}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                                    <div>
+                                        <strong>Estado:</strong> {fecha.convocada ? '📢 Pública (Visible para jugadores)' : '🔒 Oculta (Borrador interno)'}
+                                    </div>
+                                    <button className={`btn ${fecha.convocada ? 'btn-danger' : 'btn-success'} btn-responsive`} onClick={toggleConvocatoria} style={{margin: 0}}>
+                                        {fecha.convocada ? 'Ocultar a Jugadores' : 'Publicar Convocatoria'}
+                                    </button>
+                                </div>
+
                                 <div style={{marginBottom: '15px', padding: '12px', background: '#f0f9ff', borderRadius: '8px', border: '1px solid #0ea5e9'}}>
                                     <strong>Partidos sin asignar: {partidosSinAsignar.length} de 26</strong>
                                 </div>
@@ -2353,13 +2428,48 @@
                                 </div>
                             </>
                         )}
+
                         {userRole === 'jugador' && fecha.partidoBonus && (
                             <div style={{marginTop: '10px', padding: '10px', background: '#fffbeb', borderRadius: '8px', border: '1px solid #f59e0b', color: '#92400e', fontWeight: 'bold'}}>
                                 ⭐ Partido Bonus de esta fecha: {PARTIDOS.find(p=>p.id===fecha.partidoBonus)?.tipo}
                             </div>
                         )}
 
-                        <button className="btn btn-success btn-responsive" onClick={() => generarPDF(fechaSeleccionada)} style={{marginTop: '20px'}}>📄 Descargar Convocatoria (PDF)</button>
+                        {/* EL PDF SOLO SE MUESTRA SI SOS CAPITAN/ADMIN O SI YA ESTÁ PUBLICADO */}
+                        {(userRole !== 'jugador' || fecha.convocada) && (
+                            <button className="btn btn-success btn-responsive" onClick={() => generarPDF(fechaSeleccionada)} style={{marginTop: '20px'}}>📄 Descargar Convocatoria (PDF)</button>
+                        )}
+
+                        {/* NUEVA BOTONERA ESTILIZADA PARA DIVIDIR LA PANTALLA */}
+                        <div style={{display: 'flex', gap: '12px', marginTop: '25px', borderTop: '1px solid #cbd5e1', paddingTop: '20px', justifyContent: 'center', flexWrap: 'wrap'}}>
+                            
+                            {/* EL BOTON CONVOCATORIA SOLO APARECE SI ESTÁ PUBLICADA O SOS CAPITAN */}
+                            {(userRole !== 'jugador' || fecha.convocada) && (
+                                <button 
+                                    style={{
+                                        padding: '10px 20px', borderRadius: '25px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer', border: 'none', transition: 'all 0.3s',
+                                        background: vistaInterna === 'convocatoria' ? '#1e3c72' : '#f1f5f9',
+                                        color: vistaInterna === 'convocatoria' ? '#d4af37' : '#475569',
+                                        boxShadow: vistaInterna === 'convocatoria' ? '0 4px 10px rgba(30, 60, 114, 0.3)' : 'inset 0 2px 4px rgba(0,0,0,0.05)'
+                                    }}
+                                    onClick={() => setVistaInterna('convocatoria')}
+                                >
+                                    👥 Convocatoria
+                                </button>
+                            )}
+
+                            <button 
+                                style={{
+                                    padding: '10px 20px', borderRadius: '25px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer', border: 'none', transition: 'all 0.3s',
+                                    background: vistaInterna === 'cronograma' ? '#1e3c72' : '#f1f5f9',
+                                    color: vistaInterna === 'cronograma' ? '#d4af37' : '#475569',
+                                    boxShadow: vistaInterna === 'cronograma' ? '0 4px 10px rgba(30, 60, 114, 0.3)' : 'inset 0 2px 4px rgba(0,0,0,0.05)'
+                                }}
+                                onClick={() => setVistaInterna('cronograma')}
+                            >
+                                ⌚ Cronograma
+                            </button>
+                        </div>
                     </div>
 
                     {showCategoriasModal && ( <ModalCategorias plantel={plantel} categoriasTemp={categoriasTemp} setCategoriasTemp={setCategoriasTemp} jugadoresHabilitadosTemp={jugadoresHabilitadosTemp} toggleJugadorHabilitado={toggleJugadorHabilitado} guardarCategorias={guardarCategorias} setShowCategoriasModal={setShowCategoriasModal} /> )}
@@ -2387,40 +2497,48 @@
                         </div>
                     )}
 
-                    <div style={{marginTop: '30px'}}>
-                        <h3 style={{marginBottom: '15px', color: '#1e3c72'}}>Cronograma</h3>
-                        {Object.keys(partidosPorHorario).length === 0 && <div className="warning" style={{background: 'white', border: '1px solid #ddd'}}>Aún no hay horarios asignados en esta fecha.</div>}
-                        {Object.values(partidosPorHorario).sort((a, b) => { if (a.dia !== b.dia) return a.dia === 'sabado' ? -1 : 1; return a.hora.localeCompare(b.hora); }).map((horario, idx) => (
-                            <div key={idx} style={{ background: '#f8f9fa', padding: '15px', borderRadius: '8px', marginBottom: '15px', border: '2px solid #ddd' }}>
-                                <div className="flex-mobile-col" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', gap:'10px'}}>
-                                    <strong style={{fontSize: '16px', color: '#1e3c72'}}>{horario.dia === 'sabado' ? 'Sábado' : 'Domingo'} - {horario.hora}</strong>
-                                    {userRole !== 'jugador' && (
-                                        <div style={{display: 'flex', gap:'5px'}}>
-                                            <button className="btn btn-primary" style={{padding: '6px 12px', fontSize: '14px', margin: '0'}} onClick={() => editarHorario(horario.dia, horario.hora)}>✏️ Editar</button>
-                                            <button className="btn btn-danger" style={{padding: '6px 12px', fontSize: '14px', margin: '0'}} onClick={() => eliminarHorario(horario.dia, horario.hora)}>🗑️</button>
-                                        </div>
-                                    )}
-                                </div>
-                                {horario.partidos.sort((a, b) => (a.posicion || 0) - (b.posicion || 0)).map(partido => (
-                                    <div key={partido.id} style={{ background: 'white', padding: '10px', borderRadius: '6px', marginBottom: '8px', border: fecha.partidoBonus === partido.id ? '2px solid #f59e0b' : '1px solid #e5e7eb' }}>
-                                        <strong>Partido {partido.posicion}: {partido.tipo}</strong>
-                                        {fecha.partidoBonus === partido.id && <span style={{color: '#f59e0b', marginLeft: '10px'}}>⭐ BONUS</span>}
+                    {/* VISTA 1: CRONOGRAMA */}
+                    {vistaInterna === 'cronograma' && (
+                        <div style={{marginTop: '10px'}}>
+                            <h3 style={{marginBottom: '15px', color: '#1e3c72'}}>⌚ Cronograma de Horarios</h3>
+                            {Object.keys(partidosPorHorario).length === 0 && <div className="warning" style={{background: 'white', border: '1px solid #ddd'}}>Aún no hay horarios asignados en esta fecha.</div>}
+                            {Object.values(partidosPorHorario).sort((a, b) => { if (a.dia !== b.dia) return a.dia === 'sabado' ? -1 : 1; return a.hora.localeCompare(b.hora); }).map((horario, idx) => (
+                                <div key={idx} style={{ background: '#f8f9fa', padding: '15px', borderRadius: '8px', marginBottom: '15px', border: '2px solid #ddd' }}>
+                                    <div className="flex-mobile-col" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', gap:'10px'}}>
+                                        <strong style={{fontSize: '16px', color: '#1e3c72'}}>{horario.dia === 'sabado' ? 'Sábado' : 'Domingo'} - {horario.hora}</strong>
+                                        {userRole !== 'jugador' && (
+                                            <div style={{display: 'flex', gap:'5px'}}>
+                                                <button className="btn btn-primary" style={{padding: '6px 12px', fontSize: '14px', margin: '0'}} onClick={() => editarHorario(horario.dia, horario.hora)}>✏️ Editar</button>
+                                                <button className="btn btn-danger" style={{padding: '6px 12px', fontSize: '14px', margin: '0'}} onClick={() => eliminarHorario(horario.dia, horario.hora)}>🗑️</button>
+                                            </div>
+                                        )}
                                     </div>
-                                ))}
-                            </div>
-                        ))}
-                    </div>
+                                    {horario.partidos.sort((a, b) => (a.posicion || 0) - (b.posicion || 0)).map(partido => (
+                                        <div key={partido.id} style={{ background: 'white', padding: '10px', borderRadius: '6px', marginBottom: '8px', border: fecha.partidoBonus === partido.id ? '2px solid #f59e0b' : '1px solid #e5e7eb' }}>
+                                            <strong>Partido {partido.posicion}: {partido.tipo}</strong>
+                                            {fecha.partidoBonus === partido.id && <span style={{color: '#f59e0b', marginLeft: '10px'}}>⭐ BONUS</span>}
+                                        </div>
+                                    ))}
+                                </div>
+                            ))}
+                        </div>
+                    )}
 
-                    <div className="match-grid" style={{marginTop: '30px'}}>
-                        <h3 style={{marginBottom: '15px', color: '#1e3c72'}}>Asignación de Jugadores</h3>
-                        {fecha.partidos.filter(p => p.horario).sort((a, b) => { if (a.dia !== b.dia) return a.dia === 'sabado' ? -1 : 1; if (a.horario !== b.horario) return a.horario.localeCompare(b.horario); return (a.posicion || 0) - (b.posicion || 0); }).map(partido => (
-                            <PartidoCard 
-                                key={partido.id} partido={partido} fechaIndex={fechaSeleccionada} fecha={fecha} userRole={userRole}
-                                actualizarJugadores={actualizarJugadores} contarPartidosJugador={contarPartidosJugador} esBonus={fecha.partidoBonus === partido.id}
-                                plantel={plantel}
-                            />
-                        ))}
-                    </div>
+                    {/* VISTA 2: CONVOCATORIA (ASIGNACIÓN) */}
+                    {vistaInterna === 'convocatoria' && (userRole !== 'jugador' || fecha.convocada) && (
+                        <div className="match-grid" style={{marginTop: '10px'}}>
+                            {fecha.partidos.filter(p => p.horario).length === 0 && (
+                                <div className="warning" style={{background: 'white', border: '1px solid #ddd'}}>Aún no se han asignado horarios a los partidos. Agregá horarios primero para asignar jugadores.</div>
+                            )}
+                            {fecha.partidos.filter(p => p.horario).sort((a, b) => { if (a.dia !== b.dia) return a.dia === 'sabado' ? -1 : 1; if (a.horario !== b.horario) return a.horario.localeCompare(b.horario); return (a.posicion || 0) - (b.posicion || 0); }).map(partido => (
+                                <PartidoCard 
+                                    key={partido.id} partido={partido} fechaIndex={fechaSeleccionada} fecha={fecha} userRole={userRole}
+                                    actualizarJugadores={actualizarJugadores} contarPartidosJugador={contarPartidosJugador} esBonus={fecha.partidoBonus === partido.id}
+                                    plantel={plantel}
+                                />
+                            ))}
+                        </div>
+                    )}
                 </div>
             );
         }
@@ -2471,18 +2589,76 @@
             useEffect(() => { setJugadoresSeleccionados(partido.jugadores || []); }, [partido.jugadores]);
 
             const jugadoresHabilitados = fecha.jugadoresHabilitados || [];
-            const jugadoresDisponibles = partido.categorias.flatMap(cat => {
-                const jugadoresBase = (plantel[cat] || []);
-                const jugadoresExtra = jugadoresHabilitados.filter(jh => jh.categoriaDestino === cat).map(jh => {
-                    const jugadorOriginal = Object.values(plantel).flat().find(j => j.nombre === jh.jugador);
-                    return jugadorOriginal ? { ...jugadorOriginal, esHabilitado: true, categoriaOriginal: jugadorOriginal.categoria } : null;
-                }).filter(Boolean);
-                return [...jugadoresBase, ...jugadoresExtra];
+
+            // 1. Calcular los "slots" (huecos) exactos que requiere este partido
+            let slotsRequeridos = [];
+            if (partido.categorias.length === partido.numJugadores) {
+                // Si es Mixto o Combinado (ej: ["damas_a", "caballeros_2da"])
+                slotsRequeridos = [...partido.categorias];
+            } else if (partido.categorias.length === 1) {
+                // Si es puro (ej: ["caballeros_2da"] y numJugadores es 2 -> duplica el slot)
+                slotsRequeridos = Array(partido.numJugadores).fill(partido.categorias[0]);
+            } else {
+                slotsRequeridos = [...partido.categorias]; // Respaldo
+            }
+
+            // 2. Descontar los slots que ya están ocupados por los jugadores seleccionados
+            const slotsRestantes = [...slotsRequeridos];
+            
+            // Aplanamos el plantel dinámico para buscar jugadores fácilmente
+            const todosLosJugadores = Object.values(plantel || {}).flat();
+
+            jugadoresSeleccionados.forEach(playerName => {
+                const jugadorObj = todosLosJugadores.find(j => j.nombre === playerName);
+                if (jugadorObj) {
+                    // Buscar si su categoría natural sirve para algún slot restante
+                    let slotIndex = slotsRestantes.indexOf(jugadorObj.categoria);
+                    if (slotIndex !== -1) {
+                        slotsRestantes.splice(slotIndex, 1);
+                    } else {
+                        // Si no, buscar si está "habilitado" para jugar en alguna de las categorías restantes
+                        const habilitaciones = jugadoresHabilitados.filter(jh => jh.jugador === playerName);
+                        let found = false;
+                        for (let hab of habilitaciones) {
+                            const hIndex = slotsRestantes.indexOf(hab.categoriaDestino);
+                            if (hIndex !== -1) {
+                                slotsRestantes.splice(hIndex, 1);
+                                found = true;
+                                break;
+                            }
+                        }
+                        // Fallback por si la base de datos tiene un jugador inválido forzado
+                        if (!found && slotsRestantes.length > 0) slotsRestantes.splice(0, 1);
+                    }
+                } else {
+                    if (slotsRestantes.length > 0) slotsRestantes.splice(0, 1);
+                }
             });
 
-            const agregarJugador = (nombreJugador) => {
-                if (jugadoresSeleccionados.length >= partido.numJugadores) { alert(`Este partido solo permite ${partido.numJugadores} jugador(es)`); return; }
-                const jugadorInfo = jugadoresDisponibles.find(j => j.nombre === nombreJugador);
+            // 3. Función para traer solo los jugadores que cumplen con una categoría específica usando el "plantel"
+            const getOpcionesParaSlot = (reqCat) => {
+                const jugadoresBase = plantel[reqCat] || [];
+                const extra = jugadoresHabilitados.filter(jh => jh.categoriaDestino === reqCat).map(jh => {
+                    const jOrig = todosLosJugadores.find(j => j.nombre === jh.jugador);
+                    return jOrig ? { ...jOrig, esHabilitado: true, categoriaOriginal: jOrig.categoria } : null;
+                }).filter(Boolean); // Limpiamos nulos
+                
+                const combinados = [...jugadoresBase, ...extra];
+                // Filtrar para que no aparezcan los que ya están seleccionados en el partido
+                return combinados.filter(d => !jugadoresSeleccionados.includes(d.nombre));
+            };
+
+            // 4. Función para poner nombres lindos en los selectores
+            const formatCatName = (cat) => {
+                const names = { 'damas_a': 'Dama A', 'damas_b': 'Dama B', 'damas_c': 'Dama C', 'caballeros_2da': 'Caballero 2da', 'caballeros_3ra': 'Caballero 3ra', 'caballeros_4ta': 'Caballero 4ta', 'caballeros_5ta': 'Caballero 5ta' };
+                return names[cat] || cat;
+            };
+
+            const agregarJugador = (nombreJugador, reqCat) => {
+                if (jugadoresSeleccionados.length >= partido.numJugadores) return;
+                
+                const opciones = getOpcionesParaSlot(reqCat);
+                const jugadorInfo = opciones.find(j => j.nombre === nombreJugador);
                 const estaHabilitado = jugadorInfo && jugadorInfo.esHabilitado;
                 
                 if (!estaHabilitado) {
@@ -2491,12 +2667,21 @@
                 }
 
                 const nuevosJugadores = [...jugadoresSeleccionados, nombreJugador];
-                setJugadoresSeleccionados(nuevosJugadores); actualizarJugadores(fechaIndex, partido.id, nuevosJugadores);
+                setJugadoresSeleccionados(nuevosJugadores); 
+                actualizarJugadores(fechaIndex, partido.id, nuevosJugadores);
             };
 
             const eliminarJugador = (index) => {
                 const nuevosJugadores = jugadoresSeleccionados.filter((_, i) => i !== index);
-                setJugadoresSeleccionados(nuevosJugadores); actualizarJugadores(fechaIndex, partido.id, nuevosJugadores);
+                setJugadoresSeleccionados(nuevosJugadores); 
+                actualizarJugadores(fechaIndex, partido.id, nuevosJugadores);
+            };
+
+            // Ayudante visual para saber si un jugador cargado es capitán o subió de categoría
+            const getBadgeInfo = (playerName) => {
+                const original = todosLosJugadores.find(j => j.nombre === playerName);
+                const esHabilitado = jugadoresHabilitados.some(jh => jh.jugador === playerName && partido.categorias.includes(jh.categoriaDestino));
+                return { ...original, esHabilitado };
             };
 
             return (
@@ -2513,12 +2698,11 @@
                         <strong>Jugadores asignados:</strong> {jugadoresSeleccionados.length === 0 && <span style={{color: '#999'}}> Ninguno</span>}
                         <div style={{marginTop: '8px'}}>
                             {jugadoresSeleccionados.map((jugador, idx) => {
-                                const jugadorObj = jugadoresDisponibles.find(j => j.nombre === jugador);
-                                const esHabilitado = jugadorObj && jugadorObj.esHabilitado;
+                                const info = getBadgeInfo(jugador);
                                 return (
-                                    <div key={idx} style={{ display: 'inline-block', background: esHabilitado ? '#10b981' : '#667eea', color: 'white', padding: '5px 12px', borderRadius: '6px', marginRight: '8px', marginBottom: '8px' }}>
-                                        {jugador} {jugadorObj?.capitan && <span className="captain-badge">CAPITÁN</span>}
-                                        {esHabilitado && <span style={{ background: 'rgba(255,255,255,0.3)', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', marginLeft: '6px' }}>↑</span>}
+                                    <div key={idx} style={{ display: 'inline-block', background: info.esHabilitado ? '#10b981' : '#667eea', color: 'white', padding: '5px 12px', borderRadius: '6px', marginRight: '8px', marginBottom: '8px' }}>
+                                        {jugador} {info?.capitan && <span className="captain-badge">CAPITÁN</span>}
+                                        {info.esHabilitado && <span style={{ background: 'rgba(255,255,255,0.3)', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', marginLeft: '6px' }}>↑</span>}
                                         {userRole !== 'jugador' && (
                                             <button onClick={() => eliminarJugador(idx)} style={{ marginLeft: '8px', background: 'rgba(255,255,255,0.3)', border: 'none', color: 'white', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px' }}>✕</button>
                                         )}
@@ -2528,35 +2712,33 @@
                         </div>
                     </div>
 
-                    {userRole !== 'jugador' && jugadoresSeleccionados.length < partido.numJugadores && (
-                        <div className="form-group" style={{marginBottom: '0'}}>
-                            <label>Agregar jugador:</label>
-                            <select onChange={(e) => { if (e.target.value) { agregarJugador(e.target.value); e.target.value = ''; } }} defaultValue="">
-                                <option value="">Seleccionar...</option>
-                                {jugadoresDisponibles.filter(j => !jugadoresSeleccionados.includes(j.nombre)).map((j, idx) => {
+                    {/* SECCIÓN MÁGICA: DIBUJA UN SELECTOR ESPECÍFICO POR CADA HUECO QUE FALTA LLENAR */}
+                    {userRole !== 'jugador' && slotsRestantes.map((reqCat, idx) => (
+                        <div className="form-group" style={{marginBottom: '8px'}} key={`slot-${idx}`}>
+                            <label style={{fontSize: '13px', color: '#475569', marginBottom: '4px'}}>Seleccionar {formatCatName(reqCat)}:</label>
+                            <select onChange={(e) => { if (e.target.value) { agregarJugador(e.target.value, reqCat); } }} value="">
+                                <option value="">-- Elegir {formatCatName(reqCat)} --</option>
+                                {getOpcionesParaSlot(reqCat).map((j, i) => {
                                     const count = contarPartidosJugador(fechaIndex, j.nombre);
-                                    return ( <option key={idx} value={j.nombre}>{j.nombre} {j.capitan ? '(CAPITÁN)' : ''} {j.esHabilitado ? '↑ ' : `- ${count}/3 partidos`}</option> );
+                                    return ( <option key={i} value={j.nombre}>{j.nombre} {j.capitan ? '(C)' : ''} {j.esHabilitado ? '↑ ' : `- ${count}/3 partidos`}</option> );
                                 })}
                             </select>
                         </div>
-                    )}
+                    ))}
 
                     {jugadoresSeleccionados.some(j => {
-                        const jugadorObj = jugadoresDisponibles.find(jd => jd.nombre === j);
-                        if (jugadorObj && jugadorObj.esHabilitado) return false; 
+                        const info = getBadgeInfo(j);
+                        if (info && info.esHabilitado) return false; 
                         return contarPartidosJugador(fechaIndex, j) > 3;
                     }) && (<div className="player-count-warning">⚠️ Advertencia: Algún jugador supera el límite de 3 partidos</div>)}
                 </div>
             );
         }
 
-        function ResultadosTab({ userRole, equipos, fechas, resultados, toggleResultado, zonasConfig, crucesFinales, playoffAvances, setPlayoffAvances }) {
+        function ResultadosTab({ userRole, fechas, resultados, toggleResultado, zonasConfig, crucesFinales, playoffAvances, setPlayoffAvances }) {
             const [showPlayOffModal, setShowPlayOffModal] = useState(false);
-            
-            // Cuando la pestaña se carga, por defecto dejamos todas las fechas cerradas
             const [fechasExpandidas, setFechasExpandidas] = useState({});
 
-            // Efecto para limpiar las pestañas expandidas si se sale y se vuelve a entrar a esta vista
             useEffect(() => {
                 setFechasExpandidas({});
             }, []);
@@ -2583,12 +2765,16 @@
                 <div>
                     <h2 style={{marginBottom: '20px', color: '#1e3c72'}}>Resultados de Partidos</h2>
                     <button className="btn btn-primary btn-responsive" onClick={() => setShowPlayOffModal(true)} style={{marginBottom: '20px'}}>🏆 Ver Play-Off Proyectado</button>
-                    {showPlayOffModal && (<PlayOffModal userRole={userRole} equipos={equipos} fechas={fechas} resultados={resultados} zonasConfig={zonasConfig} crucesFinales={crucesFinales} playoffAvances={playoffAvances} setPlayoffAvances={setPlayoffAvances} onClose={() => setShowPlayOffModal(false)} />)}
+                    {showPlayOffModal && (<PlayOffModal userRole={userRole} fechas={fechas} resultados={resultados} zonasConfig={zonasConfig} crucesFinales={crucesFinales} playoffAvances={playoffAvances} setPlayoffAvances={setPlayoffAvances} onClose={() => setShowPlayOffModal(false)} />)}
                     
                     {fechas.map((fecha, fechaIdx) => {
+                        if (!fecha) return null;
                         const resultado = calcularResultadoFecha(fechaIdx);
                         const total = resultado.ganados + resultado.perdidos;
                         const isExpanded = fechasExpandidas[fechaIdx];
+                        
+                        // Validamos si la fecha está oculta para el jugador
+                        const isOcultaParaJugador = userRole === 'jugador' && !fecha.convocada;
 
                         return (
                             <div key={fechaIdx} className="date-section" style={{padding: isExpanded ? '20px' : '10px 20px'}}>
@@ -2614,7 +2800,11 @@
                                                         <div>
                                                             <div style={{fontSize: '12px', color: '#666', marginBottom: '4px'}}>{partido.dia === 'sabado' ? 'Sábado' : 'Domingo'} {partido.horario} - Partido {partido.posicion}</div>
                                                             <strong>{partido.tipo}</strong> {esBonus && <span style={{color: '#f59e0b', marginLeft: '10px'}}>⭐ BONUS (20 pts)</span>} {!esBonus && <span style={{color: '#666', marginLeft: '10px', fontSize: '14px'}}>(10 pts)</span>}
-                                                            <div style={{fontSize: '14px', marginTop: '5px'}}>{partido.jugadores.join(' / ')}</div>
+                                                            
+                                                            {/* ACÁ OCULTAMOS LOS NOMBRES SI ES JUGADOR Y NO ESTÁ PUBLICADA */}
+                                                            <div style={{fontSize: '14px', marginTop: '5px', color: isOcultaParaJugador ? '#991b1b' : 'inherit', fontStyle: isOcultaParaJugador ? 'italic' : 'normal', fontWeight: isOcultaParaJugador ? 'bold' : 'normal'}}>
+                                                                {isOcultaParaJugador ? '🔒 Convocatoria en armado' : partido.jugadores.join(' / ')}
+                                                            </div>
                                                         </div>
                                                         <div className="checkbox-container" style={{margin: 0}}>
                                                             <input type="checkbox" checked={ganado} onChange={() => toggleResultado(fechaIdx, partido.id)} disabled={userRole === 'jugador'} />
