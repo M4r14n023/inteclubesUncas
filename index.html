@@ -658,6 +658,42 @@
                 </div>
             );
         }
+        // --- COMPONENTE BACK TO TOP (AZUL/BLANCO) ---
+        function BotonVolverArriba() {
+            const [isVisible, setIsVisible] = useState(false);
+
+            useEffect(() => {
+                const toggleVisibility = () => {
+                    if (window.pageYOffset > 300) { setIsVisible(true); }
+                    else { setIsVisible(false); }
+                };
+                window.addEventListener('scroll', toggleVisibility);
+                return () => window.removeEventListener('scroll', toggleVisibility);
+            }, []);
+
+            const scrollToTop = () => { window.scrollTo({ top: 0, behavior: 'smooth' }); };
+
+            return (
+                <div 
+                    onClick={scrollToTop}
+                    style={{
+                        position: 'fixed', bottom: '25px', right: '25px',
+                        width: '45px', height: '45px', borderRadius: '50%',
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                        color: '#1e3c72', border: '2px solid #1e3c72',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        cursor: 'pointer', fontSize: '20px', fontWeight: 'bold',
+                        boxShadow: '0 4px 10px rgba(0,0,0,0.15)',
+                        transition: 'opacity 0.3s, transform 0.3s',
+                        opacity: isVisible ? 1 : 0, 
+                        pointerEvents: isVisible ? 'auto' : 'none',
+                        zIndex: 1000
+                    }}
+                >
+                    ▲
+                </div>
+            );
+        }
 
         function App() {
             const [userRole, setUserRole] = useState(localStorage.getItem(ID_PROYECTO + '_user_role') || null);
@@ -1088,42 +1124,8 @@
                         <span style={{fontSize: '11px', opacity: 0.8}}>Sistema de Gestión de Torneos Interclubes</span>
                     </div>
 
-                    {/* --- COMPONENTE BACK TO TOP (Plantilla Virgen: Azul/Blanco) --- */}
-                    {(() => {
-                        const [isVisible, setIsVisible] = useState(false);
-
-                        useEffect(() => {
-                            const toggleVisibility = () => {
-                                if (window.pageYOffset > 300) { setIsVisible(true); }
-                                else { setIsVisible(false); }
-                            };
-                            window.addEventListener('scroll', toggleVisibility);
-                            return () => window.removeEventListener('scroll', toggleVisibility);
-                        }, []);
-
-                        const scrollToTop = () => { window.scrollTo({ top: 0, behavior: 'smooth' }); };
-
-                        return (
-                            <div 
-                                onClick={scrollToTop}
-                                style={{
-                                    position: 'fixed', bottom: '25px', right: '25px',
-                                    width: '45px', height: '45px', borderRadius: '50%',
-                                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                                    color: '#1e3c72', border: '2px solid #1e3c72',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    cursor: 'pointer', fontSize: '20px', fontWeight: 'bold',
-                                    boxShadow: '0 4px 10px rgba(0,0,0,0.15)',
-                                    transition: 'opacity 0.3s, transform 0.3s',
-                                    opacity: isVisible ? 1 : 0, 
-                                    pointerEvents: isVisible ? 'auto' : 'none',
-                                    zIndex: 1000
-                                }}
-                            >
-                                ▲
-                            </div>
-                        );
-                    })()}
+                    {/* --- LLAMADA AL COMPONENTE BACK TO TOP --- */}
+                    <BotonVolverArriba />
 
                 </div>
             );
